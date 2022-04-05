@@ -74,6 +74,8 @@ class RawData:
             end = start_indices[index+1]
             track_list.append(TrackView(self._dataset, list(range(start, end))))
 
+        
+
 
         # Store all the TrackView objects in a list
         self._track_list = TrackViewList(track_list)
@@ -272,18 +274,33 @@ class TrackView:
 
         Returns:
             A 'TrackViewList' object containing a list of extracted sub-track 'TrackView' objects.
+            tropical_flag: list indicates whether the start position of the subtrack is located in tropical
+            hemi_flag: list indicates which hemisphere the start position of the subtrack is located
         """
         sub_tracks = []
         start = 0
 
+        # identify whether the starting position of the subtrack is from tropical or N / S hemisphere
+        tropical_flag = []
+        hemi_flag = []
+
         while True:
+
             sub_track = self.extract_sub_track(start, length, step_stride)
             if sub_track is None:
                 break
             sub_tracks.append(sub_track)
+
+            start_pos = self._raw_data['lat'][self._indices[start]]
+            tropical = 1 if (start_pos >= -23.5 and start_pos <= 23.5) else 0
+            hemi = 1 if start_pos >= 0 else 0 # 1: N hemisphere  / 0: S hemisphere
+            tropical_flag.append(tropical)
+            hemi_flag.append(hemi)
+            
             start += start_stride
 
-        return TrackViewList(sub_tracks)
+
+        return TrackViewList(sub_tracks), np.array(tropical_flag), np.array(hemi_flag)
 
     def __getitem__(self, index):
         if type(index) == slice:

@@ -6,7 +6,9 @@ from rawdata import RawData
 def extract_timeseries(
     raw_path,
     ra_feature_names,
-    meta_feature_names
+    meta_feature_names,
+    tropical = 'mix',
+    hemi = 'mix'
 ):
     print("Processing: ", raw_path)
 
@@ -21,6 +23,7 @@ def extract_timeseries(
     ra_features = []
     meta_features = []
     labels = []
+    moving_avg = []
 
     # Iterate over each cyclone
     for track in cyclone_tracks:
@@ -30,7 +33,32 @@ def extract_timeseries(
             continue
 
         # Extract all possible sub-tracks which contain 14 consecutive time steps 
-        sub_tracks = track.extract_all_sub_tracks(1, 14, 1)
+        sub_tracks, tropical_flag, hemi_flag = track.extract_all_sub_tracks(1, 14, 1)
+
+        if tropical == 'tropical' and hemi == 'N':
+            index = np.intersect1d(np.where(tropical_flag == 1), np.where(hemi_flag == 1))
+            sub_tracks = sub_tracks[index]
+        elif tropical == 'extra' and hemi == 'N':
+            index = np.intersect1d(np.where(tropical_flag == 0), np.where(hemi_flag == 1))
+            sub_tracks = sub_tracks[index]
+        elif tropical == 'tropical' and hemi == 'S':
+            index = np.intersect1d(np.where(tropical_flag == 1), np.where(hemi_flag == 0))
+            sub_tracks = sub_tracks[index]
+        elif tropical == 'extra' and hemi == 'S':
+            index = np.intersect1d(np.where(tropical_flag == 0), np.where(hemi_flag == 0))
+            sub_tracks = sub_tracks[index]
+        elif tropical == 'tropical' and hemi == 'mix':
+            index = np.where(tropical_flag == 1)[0]
+            sub_tracks = sub_tracks[index]
+        elif tropical == 'extra' and hemi == 'mix':
+            index = np.where(tropical_flag == 0)[0]
+            sub_tracks = sub_tracks[index]
+        elif tropical == 'mix' and hemi == 'N':
+            index = np.where(hemi_flag == 1)[0]
+            sub_tracks = sub_tracks[index]
+        elif tropical == 'mix' and hemi == 'S':
+            index = np.where(hemi_flag == 0)[0]
+            sub_tracks = sub_tracks[index]           
 
         num_subtracks += len(sub_tracks)
 
@@ -40,6 +68,7 @@ def extract_timeseries(
             sub_ra_features = []
             sub_meta_features = []
             sub_labels = []
+            sub_mov_avg = []
 
             # Iterate over the first 7 time steps and extract the data
             for index, step in enumerate(sub_track[:7]):
@@ -54,28 +83,28 @@ def extract_timeseries(
                 label = sub_track[index + 7].get_meta_features(["pmin"])
                 sub_labels.append(label)
 
+                # compute the moving average as the baseline
+                pmin_avg = np.mean([t.get_meta_features(["pmin"]) for t in sub_track[index: index + 7]])
+                sub_mov_avg.append(pmin_avg)
+
+
             ra_features.append([sub_ra_features])
             meta_features.append([sub_meta_features])
-            labels.append([sub_labels])  
+            labels.append([sub_labels]) 
+            moving_avg.append([sub_mov_avg])
+
+            
 
     # Combine the feature lists
     ra_features = np.vstack(ra_features)
     meta_features = np.vstack(meta_features)
     labels = np.vstack(labels)
+    moving_avg = np.vstack(moving_avg)
 
-    # Reorder the meta features for backwards-compatibility
-    """
-    pmin = meta_features[:, 0].flatten()
-    pcont = meta_features[:, 1].flatten()
-    month = meta_features[0, 2]
-    month = np.eye(12)[int(month) - 1]
-    xyz = meta_features[:, 3:].reshape((21))
-    meta_features = np.concatenate((pmin, month, xyz, pcont))  ==>不知道啥意思
-    """
     
 
     # Store all graphs of this file together in one file
     # store_path = path.join(processed_dir, path.basename(raw_path) + ".cube_graphs")
     # torch.save(graph_list, store_path)
 
-    return num_subtracks, ra_features, meta_features, labels
+    return num_subtracks, ra_features, meta_features, labels, moving_avg
