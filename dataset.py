@@ -1,5 +1,6 @@
 from os import path
 import numpy as np
+import pickle
 
 from rawdata import RawData
 
@@ -7,9 +8,24 @@ def extract_timeseries(
     raw_path,
     ra_feature_names,
     meta_feature_names,
+    to_path,
     tropical = 'mix',
     hemi = 'mix'
 ):
+    """ for every 14 hour subtracks, extract meta & reanalysis features, labels and moving average
+    Args:
+        raw_path: the folder path to predictors
+        ra_feature_names: subset of ['U300', 'V300', 'U500', 'V500', 'T850', 'MSL', 'PV320']
+        meta_feature_names: subset of ['time', 'lon', 'lat', 'pmin', 'id', 'month']
+        tropical = ['tropical', 'extra', 'mix'], default = 'mix'
+        hemi = ['N', 'S', 'mix'], default = 'mix'
+    Returns:
+        num_subtracks
+        ra_features
+        meta_features
+        labels
+        moving_avg
+    """
     print("Processing: ", raw_path)
 
     # Load the data into a RawData object
@@ -80,7 +96,7 @@ def extract_timeseries(
                 sub_meta_features.append(step.get_meta_features(meta_feature_names, position_enc="xyz"))
 
                 # Fetch the intensity "pmin" of the time step 7 steps in the future
-                label = sub_track[index + 7].get_meta_features(["pmin"])
+                label = sub_track[index + 7].get_meta_features(["pmin"])[0]
                 sub_labels.append(label)
 
                 # compute the moving average as the baseline
@@ -101,10 +117,11 @@ def extract_timeseries(
     labels = np.vstack(labels)
     moving_avg = np.vstack(moving_avg)
 
-    
+    # save data to pkl files
+    pickle.dump(ra_features, open(to_path + "/ra_features.pkl", "wb"))
+    pickle.dump(meta_features, open(to_path + "/meta_features.pkl", "wb"))
+    pickle.dump(labels, open(to_path + "/labels.pkl", "wb"))
+    pickle.dump(moving_avg, open(to_path + "/moving_avg.pkl", "wb"))
 
-    # Store all graphs of this file together in one file
-    # store_path = path.join(processed_dir, path.basename(raw_path) + ".cube_graphs")
-    # torch.save(graph_list, store_path)
 
     return num_subtracks, ra_features, meta_features, labels, moving_avg

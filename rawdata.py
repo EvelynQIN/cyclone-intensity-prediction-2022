@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
 import netCDF4 as nc
-#import pickle
 import torch
 from geometry import to_xyz
 
@@ -74,9 +73,6 @@ class RawData:
             end = start_indices[index+1]
             track_list.append(TrackView(self._dataset, list(range(start, end))))
 
-        
-
-
         # Store all the TrackView objects in a list
         self._track_list = TrackViewList(track_list)
 
@@ -122,9 +118,10 @@ class StepView:
                 feature = feature.flatten()
             features.append(feature)    # all features from one timestampis concatenated into one list
 
-        if time_step is not None:
-            time_steps = np.repeat(time_step, features[-1].shape[0])
-            features.append(time_steps)  # add time step info into features
+        
+        #if time_step is not None:
+        #    time_steps = np.repeat(time_step, features[-1].shape[0])
+        #    features.append(time_steps)  # add time step info into features
 
         if not hasattr(feature_names, "__iter__"):
             return features[0]
@@ -296,7 +293,7 @@ class TrackView:
             hemi = 1 if start_pos >= 0 else 0 # 1: N hemisphere  / 0: S hemisphere
             tropical_flag.append(tropical)
             hemi_flag.append(hemi)
-            
+
             start += start_stride
 
 
@@ -348,17 +345,6 @@ class TrackViewList:
         return len(self._track_list)
 
 
-class CycloneDataset(torch.utils.data.Dataset):
-
-    def __init__(self, data_list):
-        super().__init__()
-        self.data_list = data_list
-
-    def __getitem__(self, index):
-        return self.data_list[index]
-
-    def __len__(self):
-        return len(self.data_list)
 
 
 
