@@ -6,6 +6,8 @@ from sklearn.preprocessing import StandardScaler
 
 
 class Transformer:
+    """ Perform ra_feature clip, month one hot encoding, standard scaler, and train_test split function
+    """
 
     def __init__(self, data_dir):
 
@@ -13,6 +15,7 @@ class Transformer:
         self.ra_feature_file = os.path.join(data_dir, "ra_features.pkl")
         self.meta_file = os.path.join(data_dir, "meta_features.pkl")
         self.label_file = os.path.join(data_dir, "labels.pkl")
+        self.scaler_dict_file = os.path.join(data_dir, "scaler_dict.pkl")
 
         self.ra_clamp_values = {
             # Each feature stores a min, max and indices tuple
@@ -27,7 +30,9 @@ class Transformer:
 
         self.ra_features_clamper()
 
-        self.one_hot_encoder()
+        self.one_hot_encoder(month_index = 4)
+
+        self.standard_scaler()
 
 
     def ra_features_clamper(self):        
@@ -40,12 +45,14 @@ class Transformer:
             ra_features[:, :, :, indices] = np.clip(ra_features[:, :, :, indices], a_min=fmin, a_max=fmax)
         self.ra_features = ra_features
 
-    def one_hot_encoder(self):
+    def one_hot_encoder(self, month_index):
+        """Append 11 0-1 digits to the tail of feature vectors
+        """
         meta_features = pd.read_pickle(self.meta_file)
 
-        month_matrix = meta_features[:, :, 3]
+        month_matrix = meta_features[:, :, month_index]
 
-        meta_features = np.delete(meta_features, 3, 2)
+        meta_features = np.delete(meta_features, month_index, 2)
 
         months = [i for i in range(1, 13)]
         one_encodes = pd.get_dummies(months, drop_first=True)
@@ -61,6 +68,28 @@ class Transformer:
             rows = np.append(rows, [cols], axis =0) if rows.size > 0 else np.array([cols])
         self.meta_features = rows
     
+    def standard_scaler(self, cols = 4):
+        """ Perform standard scaler on all features and labels
+        Args:
+            cols: num of cols to be scaled in the meta features
+        """
+        scaler_dict = pd.read_pickle(self.scaler_dict_file)
+        labels = pd.read_pickle(self.label_file)
+
+        # standardize labels
+        self.labels = (labels - scaler_dict['pmin'][0]) / scaler_dict['pmin'][1]
+
+        # standardize meta featrues --> first 4 cols ['pmin', 'x', 'y', 'z', 'month-one-hot']
+        meta_cols = ['pmin', 'x', 'y', 'z']
+        for i in range(cols):
+            self.meta_features[:, :, i] = (self.meta_features[:, :, i] - scaler_dict[meta_cols[i]][0]) / scaler_dict[meta_cols[i]][1]
+
+        # standardize ra featrues --> ['U300', 'V300', 'U500', 'V500', 'T850', 'MSL', 'PV320']
+        ra_cols = ['U300', 'V300', 'U500', 'V500', 'T850', 'MSL', 'PV320']
+        for i in range(len(ra_cols)):
+            self.ra_features[:, :, :, i] = (self.ra_features[:, :, :, i] - scaler_dict[ra_cols[i]][0]) / scaler_dict[ra_cols[i]][1]
+
+    
     def train_test_split(self, ratio = 0.88, norm = True):
         """ split train and test based on ratio and perform standard scaler
         Args:
@@ -69,44 +98,12 @@ class Transformer:
         Returns:
             train_labels, test_labels, train_meta, test_meta, train_ra, test_ra
         """
-        self.labels = pd.read_pickle(self.label_file)
         datasize = self.labels.shape[0]
         split_ind = int(datasize * ratio)
         print("train size: {}   ||    test size {}".format(split_ind, datasize - split_ind))
         train_labels, test_labels = self.labels[:split_ind], self.labels[split_ind:]
         train_meta, test_meta = self.meta_features[:split_ind], self.meta_features[split_ind:]
         train_ra, test_ra = self.ra_features[:split_ind], self.ra_features[split_ind:]
-
-        if norm == True:
-
-            # check standardize 逻辑， 一直报错，而且 time, location坐标还有month是不是不需要做标准化？
-
-            # meta_train_shape = train_meta.shape
-            # train_meta = train_meta.reshape((meta_train_shape[0], -1))
-            # scaler = StandardScaler().fit(train_meta)
-            # train_meta = scaler.transform(train_meta)
-            # train_meta = train_meta.reshape(meta_train_shape)
-
-            # meta_test_shape = test_meta.shape
-            # test_meta = test_meta.reshape((meta_test_shape[0], -1))
-            # test_meta = scaler.transform(test_meta)
-            # test_meta = test_meta.reshape(meta_test_shape)
-
-            # scaler = StandardScaler().fit(train_labels)
-            # train_labels = scaler.transform(train_labels)
-            # test_labels = scaler.transform(test_labels)
-
-            # ra_train_shape = train_ra.shape
-            # train_ra = train_ra.reshape((ra_train_shape[0], -1))
-            # scaler = StandardScaler().fit(train_ra)
-            # train_ra = scaler.transform(train_ra)
-            # train_ra = train_ra.reshape(ra_train_shape)
-
-            # ra_test_shape = test_ra.shape
-            # test_ra = test_ra.reshape((ra_test_shape[0], -1))
-            # test_ra = scaler.transform(test_ra)
-            # test_ra = test_ra.reshape(test_ra)
-            print("做的不对，之后再改 ：)")
         
         return train_labels, test_labels, train_meta, test_meta, train_ra, test_ra
 

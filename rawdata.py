@@ -55,6 +55,12 @@ class RawData:
                     self._dataset[k] = np.append(self._dataset[k], m_data.variables[k][:].data, axis = 0) if len(self._dataset[k]) > 0 else m_data.variables[k][:].data
                 self._dataset['year'] = np.append(self._dataset['year'], [y] * len(m_data.dimensions['ind']))
                 self._dataset['month'] = np.append(self._dataset['month'], [int(m)] * len(m_data.dimensions['ind']))
+         
+        pos_x, pos_y, pos_z = to_xyz(np.array(self._dataset['lon']), np.array(self._dataset['lat']))
+        self._dataset['x'] = pos_x
+        self._dataset['y'] = pos_y
+        self._dataset['z'] = pos_z
+
         
         # Make the id of the first cyclone track start with 0 (currently it starts with some higher number)
         start_id = self._dataset['id'][0]
@@ -75,6 +81,57 @@ class RawData:
 
         # Store all the TrackView objects in a list
         self._track_list = TrackViewList(track_list)
+    
+    def mean_std_cal(self, tropical = 'mix', hemi = 'mix'):
+        """Calculate the mean and std for each feature for standard scaler
+        Args:
+            tropical: ['tropical', 'extra', 'mix'], default = 'mix'
+            hemi: ['N', 'S', 'mix'], default = 'mix'
+        Returns:
+            a dict contains the mean & std of each feature
+        """
+        features = ['lon', 'lat', 'U500', 'V500', 'U300', 'V300', 'T850', 'MSL', 'PV320', 'pmin', 'x', 'y', 'z']
+
+        if tropical == 'tropical' and hemi == 'N':
+            index = np.where((self._dataset['lat'] >= 0) & (self._dataset['lat'] <= 23.5))[0]
+        elif tropical == 'extra' and hemi == 'N':
+            index = np.where(self._dataset['lat'] > 23.5)[0]
+        elif tropical == 'tropical' and hemi == 'S':
+            index = np.where((self._dataset['lat'] < 0) & (self._dataset['lat'] > -23.5))[0]
+        elif tropical == 'extra' and hemi == 'S':
+            index = np.where(self._dataset['lat'] < -23.5)[0]
+        elif tropical == 'tropical' and hemi == 'mix':
+            index = np.where((self._dataset['lat'] >= -23.5) & (self._dataset['lat'] <= 23.5))[0]
+        elif tropical == 'extra' and hemi == 'mix':
+            index = np.where((self._dataset['lat'] > 23.5) | (self._dataset['lat'] < -23.5))[0]
+        elif tropical == 'mix' and hemi == 'N':
+            index = np.where(self._dataset['lat'] >= 0)[0]
+        elif tropical == 'mix' and hemi == 'S':
+            index = np.where(self._dataset['lat'] < 0)[0]
+        else:  
+            index = np.array([])
+
+        scaler_dict = dict()
+
+        ra_clamp_values = {
+            # Each feature stores a min, max and indices tuple
+            'U300': [-100, 100.0, 0],
+            'V300': [-100, 100.0, 1],
+            'U500': [-100, 100.0, 2],
+            'V500': [-100, 100.0, 3],
+            'T850': [200, 330, 4],
+            'MSL': [8e4, 1.2e5, 5],
+            'PV320': [-30, 30.0, 6]
+        }
+
+        for feature in features:
+            col = self._dataset[feature]
+            if feature in ['U300', 'V300', 'U500','V500','T850','MSL','PV320']:
+                col = np.clip(col, a_min=ra_clamp_values[feature][0], a_max=ra_clamp_values[feature][1])
+            mean = np.mean(col.flatten()) if index.size == 0 else np.mean(col[index].flatten())
+            std =  np.std(col.flatten()) if index.size == 0 else np.std(col[index].flatten())
+            scaler_dict[feature] = [mean, std]
+        return scaler_dict
 
     @property
     def tracks(self):
@@ -130,13 +187,13 @@ class StepView:
 
         return features
 
-    def get_meta_features(self, feature_names, position_enc="lonlat"):
+    def get_meta_features(self, feature_names):
         """
         Returns the data of one or several meta-data features.
 
         Args:
             feature_names: Either a string or a list of strings of meta feature names. Valid strings are:
-                ['id', 'time', 'center_lon', 'center_lat', 'pmin', 'pcont', 'month']
+                ['id', 'time', 'center_lon', 'center_lat', 'pmin', 'pcont', 'month', 'x', 'y', 'z']
 
         Returns:
             A numpy 1d array containing one entry for each indicated feature
@@ -149,25 +206,9 @@ class StepView:
             feature_names = [feature_names]
 
         for idx, feature_name in enumerate(feature_names):
-            if feature_name == "lon":
-                lon = True
-                lon_idx = idx
-            elif feature_name == "lat":
-                lat = True
-                lat_idx = idx
             feature = self._raw_data[feature_name][self._index]
 
             features.append(feature)
-
-
-        # transform the long & lat into 3d-euclidian space
-        if lon and lat and position_enc == "xyz":
-            longitudes = features[lon_idx]
-            latitudes = features[lat_idx]
-            del features[max(lon_idx, lat_idx)]
-            del features[min(lon_idx, lat_idx)]
-            x, y, z = to_xyz(np.array(longitudes), np.array(latitudes))
-            features.extend([x, y, z])
 
         features = np.array(features)
         return features
