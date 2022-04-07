@@ -8,9 +8,9 @@
 Predict cyclone intensity and if possible explain feature importance.
 
 ## Authors and acknowledgment
-Yaqi Qin yaqqin@student.ethz.ch
-Feichi Lu feiclu@student.ethz.ch
-Tianyang Xu tianyxu@student.ethz.ch
+* Yaqi Qin yaqqin@student.ethz.ch
+* Feichi Lu feiclu@student.ethz.ch
+* Tianyang Xu tianyxu@student.ethz.ch
 
 ## Current progress
 1. RawData class
