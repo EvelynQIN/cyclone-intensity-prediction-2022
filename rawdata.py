@@ -198,14 +198,12 @@ class StepView:
         Returns:
             A numpy 1d array containing one entry for each indicated feature
         """
-        lon, lat = False, False
-        lon_idx, lat_idx = -1, -1
 
         features = []
         if not hasattr(feature_names, "__iter__"):
             feature_names = [feature_names]
 
-        for idx, feature_name in enumerate(feature_names):
+        for feature_name in feature_names:
             feature = self._raw_data[feature_name][self._index]
 
             features.append(feature)

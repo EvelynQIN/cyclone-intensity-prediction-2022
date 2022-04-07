@@ -2,7 +2,6 @@ import os
 import pandas as pd
 import numpy as np
 import torch
-from sklearn.preprocessing import StandardScaler
 
 
 class Transformer:
@@ -90,7 +89,7 @@ class Transformer:
             self.ra_features[:, :, :, i] = (self.ra_features[:, :, :, i] - scaler_dict[ra_cols[i]][0]) / scaler_dict[ra_cols[i]][1]
 
     
-    def train_test_split(self, ratio = 0.88, norm = True):
+    def train_test_split(self, ratio = 0.88):
         """ split train and test based on ratio and perform standard scaler
         Args:
             ratio: split ratio
