@@ -17,8 +17,10 @@ Predict cyclone intensity and if possible explain feature importance.
     * load the raw data from the "predictors" folder, and merge them into a dict (add three columns representing X, Y, Z coordinates)
     * calculate mean / std of each numeric features (before calculating, first clip the values, because there are some inf values)
 2. extract_time_series function
-    * current setting: 14 hours as one subtrack, first 7 hours to extract features, last 7 hours to extract labels
-    * users can specify "tropical" and "hemisphere" to extract
+    * current setting: 12 hours as one subtrack, first 6 hours to extract features, last 6 hours to extract labels
+    * users can specify "tropical" and "hemisphere" to extract:
+        * "tropical": "tropical" :  -20 < lat < 20    vs      "extra": lat < -20 or lat > 20
+        * "hemi" : "N" : lat > 0   vs   "S": lat < 0
     *  calculate the moving average in loaddata.py extract_time_series function
 3. Transformer class:
     * for **7** reanalysis features **['U300', 'V300', 'U500', 'V500', 'T850', 'MSL', 'PV320']**: clip

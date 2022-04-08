@@ -48,11 +48,11 @@ def extract_timeseries(
     for track in cyclone_tracks:
 
         # We only want to look at cyclones which live at least 14 hours. (7 h -> pred next 7 h)
-        if len(track) < 14:
+        if len(track) < 12:
             continue
 
         # Extract all possible sub-tracks which contain 14 consecutive time steps 
-        sub_tracks, tropical_flag, hemi_flag = track.extract_all_sub_tracks(1, 14, 1)
+        sub_tracks, tropical_flag, hemi_flag = track.extract_all_sub_tracks(1, 12, 1)
 
         if tropical == 'tropical' and hemi == 'N':
             index = np.intersect1d(np.where(tropical_flag == 1), np.where(hemi_flag == 1))
@@ -90,7 +90,7 @@ def extract_timeseries(
             sub_mov_avg = []
 
             # Iterate over the first 7 time steps and extract the data
-            for index, step in enumerate(sub_track[:7]):
+            for index, step in enumerate(sub_track[:6]):
 
                 # First get the reanalysis features for each of the first 7 time steps
                 sub_ra_features.append(step.get_ra_features(ra_feature_names, time_step=index+1).T)
@@ -99,11 +99,11 @@ def extract_timeseries(
                 sub_meta_features.append(step.get_meta_features(meta_feature_names))
 
                 # Fetch the intensity "pmin" of the time step 7 steps in the future
-                label = sub_track[index + 7].get_meta_features(["pmin"])[0]
+                label = sub_track[index + 6].get_meta_features(["pmin"])[0]
                 sub_labels.append(label)
 
                 # compute the moving average as the baseline
-                curr_pmins = [t.get_meta_features(["pmin"]) for t in sub_track[index: 7]]
+                curr_pmins = [t.get_meta_features(["pmin"]) for t in sub_track[index: 6]]
                 curr_pmins = np.append(curr_pmins, sub_mov_avg)
                 pmin_avg = np.mean(curr_pmins)
                 sub_mov_avg.append(pmin_avg)

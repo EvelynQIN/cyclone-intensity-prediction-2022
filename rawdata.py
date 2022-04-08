@@ -95,15 +95,15 @@ class RawData:
         if tropical == 'tropical' and hemi == 'N':
             index = np.where((self._dataset['lat'] >= 0) & (self._dataset['lat'] <= 23.5))[0]
         elif tropical == 'extra' and hemi == 'N':
-            index = np.where(self._dataset['lat'] > 23.5)[0]
+            index = np.where(self._dataset['lat'] > 20)[0]
         elif tropical == 'tropical' and hemi == 'S':
             index = np.where((self._dataset['lat'] < 0) & (self._dataset['lat'] > -23.5))[0]
         elif tropical == 'extra' and hemi == 'S':
-            index = np.where(self._dataset['lat'] < -23.5)[0]
+            index = np.where(self._dataset['lat'] < -20)[0]
         elif tropical == 'tropical' and hemi == 'mix':
-            index = np.where((self._dataset['lat'] >= -23.5) & (self._dataset['lat'] <= 23.5))[0]
+            index = np.where((self._dataset['lat'] >= -20) & (self._dataset['lat'] <= 20))[0]
         elif tropical == 'extra' and hemi == 'mix':
-            index = np.where((self._dataset['lat'] > 23.5) | (self._dataset['lat'] < -23.5))[0]
+            index = np.where((self._dataset['lat'] > 20) | (self._dataset['lat'] < -20))[0]
         elif tropical == 'mix' and hemi == 'N':
             index = np.where(self._dataset['lat'] >= 0)[0]
         elif tropical == 'mix' and hemi == 'S':
@@ -328,7 +328,7 @@ class TrackView:
             sub_tracks.append(sub_track)
 
             start_pos = self._raw_data['lat'][self._indices[start]]
-            tropical = 1 if (start_pos >= -23.5 and start_pos <= 23.5) else 0
+            tropical = 1 if (start_pos >= -20 and start_pos <= 20) else 0
             hemi = 1 if start_pos >= 0 else 0 # 1: N hemisphere  / 0: S hemisphere
             tropical_flag.append(tropical)
             hemi_flag.append(hemi)
