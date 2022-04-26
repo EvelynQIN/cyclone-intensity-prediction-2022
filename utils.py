@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 from sklearn.metrics import mean_squared_error
-from sqlalchemy import false
 
 def moving_average(meta_features):
         X_intensity = meta_features[:, :, 0]

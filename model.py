@@ -155,3 +155,47 @@ class TCN(torch.nn.Module):
         #print("shape of y: {}".format(y.shape)) #test dim  128 * 6?
         return y
 
+class Lstm(torch.nn.Module):
+    """
+    para
+    - input_size: feature size
+    - hidden_size: number of hidden units
+    - output_size: number of output
+    - num_layers: layers of LSTM to stack
+    """
+    def __init__(self, input_size_ra, input_size_meta, hidden_size, output_size, num_layers, use_ra = True):
+        super().__init__()
+        self.input_size_ra = input_size_ra
+        self.input_size_meta = input_size_meta
+        self.output_size = output_size
+        self.n_layers = num_layers
+        self.hidden_size = hidden_size
+        self.lstm_meta = torch.nn.LSTM(input_size_meta, hidden_size, num_layers, batch_first=True).float()
+        self.lstm_meta_ra = torch.nn.LSTM(input_size_meta+input_size_ra, hidden_size, num_layers, batch_first=True).float()
+        self.fc = torch.nn.Linear(hidden_size, output_size)
+        self.fc_1 = torch.nn.Linear(hidden_size, 1)
+        self.use_ra = use_ra
+
+    def forward(self, x, h0):
+        # print(h0[0].shape)
+        # print(h0[1].shape)
+        (x_meta, x_ra) = x
+        # print('x_meta shape:{}'.format(x_meta.shape))
+        # print('x_ra shape:{}'.format(x_ra.shape))
+
+        if self.use_ra == True:
+            x_ra = x_ra.reshape(x_ra.shape[0], x_ra.shape[1], -1)
+            new = torch.cat((x_ra, x_meta), 2)
+            model = self.lstm_meta_ra
+        else:
+            new = x_meta
+            model = self.lstm_meta
+
+        _, (h, _) = model(new, h0) # x_ra:(batch_size, seq_length, input_size)
+        x = self.fc(h[-1])
+        return x
+    
+
+    def init_hidden(self, batch_size):
+        hidden = (torch.zeros([self.n_layers, batch_size, self.hidden_size]), torch.zeros([self.n_layers, batch_size, self.hidden_size]))
+        return hidden
