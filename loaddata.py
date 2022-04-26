@@ -108,20 +108,22 @@ class Transformer:
 
 class CycloneDataset(torch.utils.data.Dataset):
 
-    def __init__(self, feature_NN, feature_CNN, target):
+    def __init__(self, meta_feature, ra_feature, label):
         super().__init__()
-        self.feature_NN = torch.from_numpy(feature_NN).float()
-        self.feature_CNN = torch.from_numpy(feature_CNN).float()
+        self.meta_feature = torch.from_numpy(meta_feature).float()
 
-        self.target = torch.from_numpy(target).float()  
+        # expected ra features to be (sample_size * time_steps * channels * 11 * 11)
+        self.ra_feature = torch.from_numpy(ra_feature.transpose((0, 1, 3, 2)).reshape(-1, 6, 7, 11, 11)).float()
+
+        self.label = torch.from_numpy(label).float()  
 
 
     def __getitem__(self, index):
-        (feature_NN, feature_CNN), target = (self.feature_NN[index], self.feature_CNN[index]), self.target
-        return (feature_NN, feature_CNN), target
+        (meta_feature, ra_feature), label = (self.meta_feature[index], self.ra_feature[index]), self.label[index]
+        return (meta_feature, ra_feature), label
 
     def __len__(self):
-        return self.feature_NN.size(0)
+        return self.meta_feature.size(0)
 
 
 
