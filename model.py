@@ -145,15 +145,52 @@ class TCN(torch.nn.Module):
         meta, ra = x
         cnn_concat = self.ConvNet(ra) # batch_size * vector_length * timesteps    
         meta = meta.transpose(1, 2)
-        feature_all = torch.cat((cnn_concat, meta), dim = 1)     
+        feature_all = torch.cat((cnn_concat, meta), dim = 1)
         output = self.tcn(feature_all)
         y = self.linear(output[:, :, -1]) # expected dim:  128 * 6
+
         # y = torch.tensor([])
         # for t in range(output.shape[2]):
         #     yt = self.linear(output[:, :, t])  # batch_size * 1   # ???????????check 是否需要搞不同的linear layer
         #     y = torch.cat((y, yt), 1)
         #print("shape of y: {}".format(y.shape)) #test dim  128 * 6?
         return y
+
+class TCN_LSTM(torch.nn.Module):
+    def __init__(self, input_size, output_size, num_channels, kernel_size, dropout, lstm_hidden_size, n_layers):
+        super(TCN_LSTM, self).__init__()
+        self.tcn = TemporalConvNet(input_size, num_channels, kernel_size=kernel_size, dropout=dropout)
+        self.lstm_hidden_size = lstm_hidden_size
+        self.linear = torch.nn.Linear(self.lstm_hidden_size, output_size)
+        self.init_weights()
+        self.feature_map_sizes = [8, 16]
+        self.filter_sizes = [2, 2]
+        
+        self.n_layers = n_layers
+        self.lstm = torch.nn.LSTM(num_channels[-1], self.lstm_hidden_size, num_layers = self.n_layers, batch_first=True)  
+        self.ConvNet = ConvNet(self.feature_map_sizes, self.filter_sizes, activation=torch.nn.ReLU())  
+        
+        
+
+    def init_weights(self):
+        self.linear.weight.data.normal_(0, 0.01)
+
+    def forward(self, x, h):
+        meta, ra = x
+        cnn_concat = self.ConvNet(ra) # batch_size * vector_length * timesteps    
+        meta = meta.transpose(1, 2)
+        feature_all = torch.cat((cnn_concat, meta), dim = 1)
+        tcn_output = self.tcn(feature_all)
+        # print(tcn_output.shape)
+        tcn_output = tcn_output.transpose(1,2)
+        # print(tcn_output.shape)
+        _, (h, _) = self.lstm(tcn_output, h)
+        y = self.linear(h[-1]) # expected dim:  128 * 6
+        return y
+
+    def init_hidden(self, batch_size):
+        hidden = (torch.zeros([self.n_layers, batch_size, self.lstm_hidden_size]), torch.zeros([self.n_layers, batch_size, self.lstm_hidden_size]))
+        return hidden
 
 class Lstm(torch.nn.Module):
     """
