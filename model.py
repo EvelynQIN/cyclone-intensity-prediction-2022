@@ -236,3 +236,107 @@ class Lstm(torch.nn.Module):
     def init_hidden(self, batch_size):
         hidden = (torch.zeros([self.n_layers, batch_size, self.hidden_size]), torch.zeros([self.n_layers, batch_size, self.hidden_size]))
         return hidden
+
+
+    
+class CNNTest(torch.nn.Module):
+    def create_nn(self, layer_dims, flag):
+        layers = []
+        for i in range(len(layer_dims) - 1):
+            layers.append(torch.nn.Linear(layer_dims[i], layer_dims[i+1]))
+            layers.append(torch.nn.ReLU())
+        if flag == 1:
+            layers = layers[:-1]
+        return torch.nn.Sequential(*layers)
+    
+    def __init__(self, groups, predict_step):
+        super().__init__()
+
+        self.predict_steps = predict_step
+        # self.input_dim = input_dim
+        self.groups = groups
+
+        """
+        Branch_1 (7 groups):
+        Conv2d: 6*11*11 -> 32*11*11
+        BatchNorm2d & ReLu
+
+        Conv2d: 32*11*11 -> 32*11*11
+        BatchNorm2d & ReLu
+        MaxPool2d: 32*11*11 -> 32*5*5
+
+        fc1: 32*5*5 -> 128
+        ReLu
+        fc2: 128 -> 6
+        ReLu
+        """
+        self.cov_dims = [6, 32, 32]
+        layers = []
+        # 8 * 11 * 11 -> 64 * 11 * 11
+        layers.append(torch.nn.Conv2d(self.cov_dims[0] * groups, self.cov_dims[1] * groups, kernel_size=3, padding=1, bias=False, groups=groups))
+        layers.append(torch.nn.BatchNorm2d(self.cov_dims[1] * groups))
+        layers.append(torch.nn.ReLU())
+        self.conv1 = torch.nn.Sequential(*layers)
+
+        #################################
+        layers = []
+        # 64 * 11 * 11 -> 64 * 11 * 11
+        layers.append(torch.nn.Conv2d(self.cov_dims[1] * groups, self.cov_dims[2] * groups, kernel_size=3, padding=1,
+                                bias=False, groups=groups))
+        layers.append(torch.nn.BatchNorm2d(self.cov_dims[2] * groups))
+        layers.append(torch.nn.ReLU())
+        # 64 * 11 * 11 -> 64 * 5 * 5
+        layers.append(torch.nn.MaxPool2d(kernel_size=3, stride=2))
+        self.conv2 = torch.nn.Sequential(*layers)
+
+        #################################
+
+        self.fc_dims = [self.cov_dims[2] * 5 * 5 * groups, 128, 6]
+        self.fc = self.create_nn(self.fc_dims, 0)
+
+        # """
+        # Branch_2: FFNN
+        # fc1: 44 -> 128
+        # ReLu
+        # fc2: 128 -> 16
+        # ReLu
+        # """
+        # self.FFNN_dims = [input_dim, 128, 16]
+        # self.FFNN = self.create_nn(self.FFNN_dims, 0)
+
+
+        # """
+        # Fuse_NN
+        # fc1: 16*6 -> 128
+        # ReLu
+        # fc2: 128 -> 3
+        # ReLu
+        # """
+        # self.fuse_dims = [16*(groups) + 16, 128, predict_step*3]
+        # self.fuse = self.create_nn(self.fuse_dims, 1)
+
+    def forward(self, x):
+        _, x = x
+        x = x.reshape(x.shape[0], 42, 11, 11)
+        x = self.conv1(x)
+        x = self.conv2(x)
+        # print("input shape is {}".format(x.shape))
+        # x = x.view(7, -1)
+        # x1 = x[1].view(-1, self.cov_dims[2] * 5 * 5)
+        x = x.view(-1, 7 * self.cov_dims[2] * 5 * 5)
+        # print("input shape is {}".format(x.shape))
+        x = self.fc(x)
+
+        # return a flattened 6 * 1 array of pmin
+        x = x.view(-1, 6)
+        # print("output shape is {}".format(x1.shape))
+
+        # y = self.FFNN(y)
+        # y = y.view(-1, 16)
+
+        output = x
+
+        # output = torch.cat((x, y), 1)
+        # output = self.fuse(output)
+
+        return output
