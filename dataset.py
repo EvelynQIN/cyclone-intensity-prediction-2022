@@ -1,5 +1,6 @@
 from os import path
 import numpy as np
+import pickle
 
 from rawdata import RawData
 
@@ -7,13 +8,31 @@ def extract_timeseries(
     raw_path,
     ra_feature_names,
     meta_feature_names,
+    to_path,
     tropical = 'mix',
     hemi = 'mix'
 ):
+    """ for every 14 hour subtracks, extract meta & reanalysis features, labels and moving average
+    Args:
+        raw_path: the folder path to predictors
+        ra_feature_names: subset of ['U300', 'V300', 'U500', 'V500', 'T850', 'MSL', 'PV320']
+        meta_feature_names: subset of ['time', 'lon', 'lat', 'pmin', 'id', 'month']
+        tropical = ['tropical', 'extra', 'mix'], default = 'mix'
+        hemi = ['N', 'S', 'mix'], default = 'mix'
+    Returns:
+        num_subtracks
+        ra_features
+        meta_features
+        labels
+        moving_avg
+    """
     print("Processing: ", raw_path)
 
     # Load the data into a RawData object
     data = RawData(raw_path)
+
+    # Get the scaler dict
+    scaler_dict = data.mean_std_cal(tropical, hemi)
 
     # Get a list of all cyclone tracks
     cyclone_tracks = data.tracks
@@ -29,11 +48,11 @@ def extract_timeseries(
     for track in cyclone_tracks:
 
         # We only want to look at cyclones which live at least 14 hours. (7 h -> pred next 7 h)
-        if len(track) < 14:
+        if len(track) < 12:
             continue
 
         # Extract all possible sub-tracks which contain 14 consecutive time steps 
-        sub_tracks, tropical_flag, hemi_flag = track.extract_all_sub_tracks(1, 14, 1)
+        sub_tracks, tropical_flag, hemi_flag = track.extract_all_sub_tracks(1, 12, 1)
 
         if tropical == 'tropical' and hemi == 'N':
             index = np.intersect1d(np.where(tropical_flag == 1), np.where(hemi_flag == 1))
@@ -71,20 +90,22 @@ def extract_timeseries(
             sub_mov_avg = []
 
             # Iterate over the first 7 time steps and extract the data
-            for index, step in enumerate(sub_track[:7]):
+            for index, step in enumerate(sub_track[:6]):
 
                 # First get the reanalysis features for each of the first 7 time steps
                 sub_ra_features.append(step.get_ra_features(ra_feature_names, time_step=index+1).T)
 
                 # Next, get the meta features for each time step
-                sub_meta_features.append(step.get_meta_features(meta_feature_names, position_enc="xyz"))
+                sub_meta_features.append(step.get_meta_features(meta_feature_names))
 
                 # Fetch the intensity "pmin" of the time step 7 steps in the future
-                label = sub_track[index + 7].get_meta_features(["pmin"])
+                label = sub_track[index + 6].get_meta_features(["pmin"])[0]
                 sub_labels.append(label)
 
                 # compute the moving average as the baseline
-                pmin_avg = np.mean([t.get_meta_features(["pmin"]) for t in sub_track[index: index + 7]])
+                curr_pmins = [t.get_meta_features(["pmin"]) for t in sub_track[index: 6]]
+                curr_pmins = np.append(curr_pmins, sub_mov_avg)
+                pmin_avg = np.mean(curr_pmins)
                 sub_mov_avg.append(pmin_avg)
 
 
@@ -101,10 +122,13 @@ def extract_timeseries(
     labels = np.vstack(labels)
     moving_avg = np.vstack(moving_avg)
 
-    
+    # save data to pkl files
+    pickle.dump(ra_features, open(to_path + "/ra_features.pkl", "wb"))
+    pickle.dump(meta_features, open(to_path + "/meta_features.pkl", "wb"))
+    pickle.dump(labels, open(to_path + "/labels.pkl", "wb"))
+    pickle.dump(moving_avg, open(to_path + "/moving_avg.pkl", "wb"))
+    pickle.dump(scaler_dict, open(to_path + "/scaler_dict.pkl", "wb"))
 
-    # Store all graphs of this file together in one file
-    # store_path = path.join(processed_dir, path.basename(raw_path) + ".cube_graphs")
-    # torch.save(graph_list, store_path)
+
 
     return num_subtracks, ra_features, meta_features, labels, moving_avg
