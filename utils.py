@@ -1,6 +1,9 @@
 import numpy as np
 import pandas as pd
+from pandas.compat.pickle_compat import _LoadSparseSeries
 from sklearn.metrics import mean_squared_error
+import torch
+from torch.cuda.memory import list_gpu_processes
 
 def moving_average(meta_features):
         X_intensity = meta_features[:, :, 0]
@@ -37,3 +40,16 @@ def MSELoss_denorm(output, label, denorm = False, time_sep = False):
         MSE = mean_squared_error(output, label)
 
     return MSE
+  
+class Weighted_MSELoss(torch.nn.Module):
+  '''Wrapper class for L1 loss that set different weight to each time step'''
+
+  def __init__(self, weight_list):
+    super().__init__()
+    self.weight_list = weight_list
+
+  def forward(self, output, label):
+    loss = 0
+    for t in range(output.shape[1]):
+      loss += torch.mean(torch.pow((output[:, t] - label[:, t]), 2)) * self.weight_list[t]
+    return loss

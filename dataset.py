@@ -9,6 +9,8 @@ def extract_timeseries(
     ra_feature_names,
     meta_feature_names,
     to_path,
+    year_range,
+    months_list = ['01','02','03','04','05','06','07','08','09','10','11','12'], 
     tropical = 'mix',
     hemi = 'mix'
 ):
@@ -29,7 +31,7 @@ def extract_timeseries(
     print("Processing: ", raw_path)
 
     # Load the data into a RawData object
-    data = RawData(raw_path)
+    data = RawData(raw_path, year_range, months_list)
 
     # Get the scaler dict
     scaler_dict = data.mean_std_cal(tropical, hemi)
@@ -87,7 +89,7 @@ def extract_timeseries(
             sub_ra_features = []
             sub_meta_features = []
             sub_labels = []
-            sub_mov_avg = []
+            # sub_mov_avg = []
 
             # Iterate over the first 7 time steps and extract the data
             for index, step in enumerate(sub_track[:6]):
@@ -102,17 +104,17 @@ def extract_timeseries(
                 label = sub_track[index + 6].get_meta_features(["pmin"])[0]
                 sub_labels.append(label)
 
-                # compute the moving average as the baseline
-                curr_pmins = [t.get_meta_features(["pmin"]) for t in sub_track[index: 6]]
-                curr_pmins = np.append(curr_pmins, sub_mov_avg)
-                pmin_avg = np.mean(curr_pmins)
-                sub_mov_avg.append(pmin_avg)
+                # # compute the moving average as the baseline
+                # curr_pmins = [t.get_meta_features(["pmin"]) for t in sub_track[index: 6]]
+                # curr_pmins = np.append(curr_pmins, sub_mov_avg)
+                # pmin_avg = np.mean(curr_pmins)
+                # sub_mov_avg.append(pmin_avg)
 
 
             ra_features.append([sub_ra_features])
             meta_features.append([sub_meta_features])
             labels.append([sub_labels]) 
-            moving_avg.append([sub_mov_avg])
+            # moving_avg.append([sub_mov_avg])
 
             
 
@@ -120,15 +122,15 @@ def extract_timeseries(
     ra_features = np.vstack(ra_features)
     meta_features = np.vstack(meta_features)
     labels = np.vstack(labels)
-    moving_avg = np.vstack(moving_avg)
+    # moving_avg = np.vstack(moving_avg)
 
     # save data to pkl files
     pickle.dump(ra_features, open(to_path + "/ra_features.pkl", "wb"))
     pickle.dump(meta_features, open(to_path + "/meta_features.pkl", "wb"))
     pickle.dump(labels, open(to_path + "/labels.pkl", "wb"))
-    pickle.dump(moving_avg, open(to_path + "/moving_avg.pkl", "wb"))
+    # pickle.dump(moving_avg, open(to_path + "/moving_avg.pkl", "wb"))
     pickle.dump(scaler_dict, open(to_path + "/scaler_dict.pkl", "wb"))
 
 
 
-    return num_subtracks, ra_features, meta_features, labels, moving_avg
+    return num_subtracks

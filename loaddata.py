@@ -89,7 +89,7 @@ class Transformer:
             self.ra_features[:, :, :, i] = (self.ra_features[:, :, :, i] - scaler_dict[ra_cols[i]][0]) / scaler_dict[ra_cols[i]][1]
 
     
-    def train_test_split(self, ratio = 0.88):
+    def train_test_split(self, split = True, ratio = 0.88):
         """ split train and test based on ratio and perform standard scaler
         Args:
             ratio: split ratio
@@ -97,14 +97,17 @@ class Transformer:
         Returns:
             train_labels, test_labels, train_meta, test_meta, train_ra, test_ra
         """
-        datasize = self.labels.shape[0]
-        split_ind = int(datasize * ratio)
-        print("train size: {}   ||    test size {}".format(split_ind, datasize - split_ind))
-        train_labels, test_labels = self.labels[:split_ind], self.labels[split_ind:]
-        train_meta, test_meta = self.meta_features[:split_ind], self.meta_features[split_ind:]
-        train_ra, test_ra = self.ra_features[:split_ind], self.ra_features[split_ind:]
-        
-        return train_labels, test_labels, train_meta, test_meta, train_ra, test_ra
+        if split:
+          datasize = self.labels.shape[0]
+          split_ind = int(datasize * ratio)
+          print("train size: {}   ||    val size {}".format(split_ind, datasize - split_ind))
+          train_labels, test_labels = self.labels[:split_ind], self.labels[split_ind:]
+          train_meta, test_meta = self.meta_features[:split_ind], self.meta_features[split_ind:]
+          train_ra, test_ra = self.ra_features[:split_ind], self.ra_features[split_ind:]
+          return train_labels, test_labels, train_meta, test_meta, train_ra, test_ra
+          
+        else:
+          return self.labels, self.meta, self.ra
 
 class CycloneDataset(torch.utils.data.Dataset):
 

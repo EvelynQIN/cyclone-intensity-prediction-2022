@@ -24,8 +24,15 @@ class RawData:
     """
     This class load the raw nc files and merge them into one data structure
     """
-    def __init__(self, folder_path):    
+    def __init__(self, folder_path, year_range, months_list):    
+        """
+        Args
+          year_range: the range of year to extract, example input: [2000, 2009] 
+          months_list: the list of month to extract, example input: ['01','02','03','04','05','06','07','08','09','10','11','12']
+        """
         self.folder_path = folder_path
+        self.year_range = year_range
+        self.months_list = months_list
 
         self.merge_data(self.folder_path)
     
@@ -35,9 +42,6 @@ class RawData:
             folder_path: path to predictors folder       
         """
         columns = ['time', 'lon', 'lat', 'id', 'U500', 'V500', 'U300', 'V300', 'T850', 'MSL', 'PV320', 'pmin']
-        #months = ['01','02','03','04','05','06','07','08','09','10','11','12']
-        months = ['01','02']
-
         self._dataset = dict()
         
         # initialize the dataset dict with empty list
@@ -47,9 +51,9 @@ class RawData:
         self._dataset['year'] = []
         self._dataset['month'] = []
 
-        # iteratively read all the data records from 2000 to 2009
-        for y in range(2000, 2001):
-            for m in months:
+        # iteratively read all the data records from year_range[0] (inclusive) to year_range[1] (exclusive)
+        for y in range(self.year_range[0], self.year_range[1]):
+            for m in self.months_list:
                 m_data = nc.Dataset(folder_path + "/pr_" + str(y) + m + ".nc")
                 for k in columns:
                     self._dataset[k] = np.append(self._dataset[k], m_data.variables[k][:].data, axis = 0) if len(self._dataset[k]) > 0 else m_data.variables[k][:].data

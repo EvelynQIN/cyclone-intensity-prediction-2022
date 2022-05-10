@@ -69,7 +69,7 @@ def train(n_epochs, model, train_loader,val_loader, optimizer, loss_fn, lr_sched
         print(f"[Epoch {epoch}] - Training : loss = {train_loss}", end=" ")
         print(f"Validation : loss = {val_loss}")
 
-def evaluate_denorm(model, val_loader, loss_fn, init_h):
+def evaluate_denorm(model, val_loader, loss_fn, init_h = None):
     """
     Evaluate model on validation data.
     """
