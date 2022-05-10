@@ -5,11 +5,12 @@ dependencies:
   - python=3.8
   - jupyter
   - torchvision
-  - torchaudio
   - pytorch
   - tqdm
   - xarray
-  - pyg
   - netcdf4
   - matplotlib
-prefix: /Users/feichi/annaconda/anaconda3/envs/dslab
+  - pip
+  - pip:
+    - torchaudio
+    - pyg

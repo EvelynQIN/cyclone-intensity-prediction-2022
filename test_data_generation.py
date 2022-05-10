@@ -8,14 +8,14 @@ import pickle
 
 if __name__ == '__main__':
     num_subtracks, ra_features, meta_features, labels, moving_avg = extract_timeseries(
-                                                                                raw_path = "predictors",
+                                                                                raw_path = "/content/drive/MyDrive/dslab/ds-lab-2022-p2-cyclone/predictors",
                                                                                 ra_feature_names = ['U300', 'V300', 'U500', 'V500', 'T850', 'MSL', 'PV320'],
                                                                                 meta_feature_names = ['pmin', 'x', 'y', 'z', 'month'],
                                                                                 to_path = "datasets",
                                                                                 tropical = 'extra',
                                                                                 hemi = 'N'
                                                                             )
-    dataset = Transformer("datasets")
+    dataset = Transformer("/content/datasets")
 
     train_labels, test_labels, train_meta, test_meta, train_ra, test_ra = dataset.train_test_split()
 
