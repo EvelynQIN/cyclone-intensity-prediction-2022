@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 
 
-def train_step(model, train_loader, optimizer, loss_fn, lr_scheduler = None, init_h = None):
+def train_step(device, model, train_loader, optimizer, loss_fn, lr_scheduler = None, init_h = None):
     """
     Train model for 1 epoch.
     """
@@ -14,7 +14,7 @@ def train_step(model, train_loader, optimizer, loss_fn, lr_scheduler = None, ini
     model.train()
 
     for features, label in train_loader:
-        #features, label = features, label # put the data on the selected execution device
+        features, label = (features[0].to(device), features[1].to(device)), label # put the data on the selected execution device
         optimizer.zero_grad()   # zero the parameter gradients
 
         if init_h == True:
@@ -30,7 +30,7 @@ def train_step(model, train_loader, optimizer, loss_fn, lr_scheduler = None, ini
     
     return loss
 
-def evaluate(model, val_loader, loss_fn, init_h = None):
+def evaluate(device, model, val_loader, loss_fn, init_h = None):
     """
     Evaluate model on validation data.
     """
@@ -40,7 +40,7 @@ def evaluate(model, val_loader, loss_fn, init_h = None):
     
     with torch.no_grad():
         for features, label in val_loader:
-            #image, label = image.to(device), label.to(device) # put the data on the selected execution device
+            features, label = (features[0].to(device), features[1].to(device)), label.to(device) # put the data on the selected execution device
             if init_h == True:
                 h = model.init_hidden(features[1].shape[0])
                 output = model(features, h)
@@ -54,22 +54,22 @@ def evaluate(model, val_loader, loss_fn, init_h = None):
 
     return total_loss
 
-def train(n_epochs, model, train_loader,val_loader, optimizer, loss_fn, lr_scheduler = None, init_h = None):
+def train(device, n_epochs, model, train_loader,val_loader, optimizer, loss_fn, lr_scheduler = None, init_h = None):
     """
     Train and evaluate model.
     """
     for epoch in range(n_epochs):
         
         # train model for one epoch
-        train_loss = train_step(model, train_loader, optimizer, loss_fn, lr_scheduler, init_h)
+        train_loss = train_step(device, model, train_loader, optimizer, loss_fn, lr_scheduler, init_h)
 
         # evaluate 
-        val_loss = evaluate(model, val_loader, loss_fn, init_h)
+        val_loss = evaluate(device, model, val_loader, loss_fn, init_h)
 
         print(f"[Epoch {epoch}] - Training : loss = {train_loss}", end=" ")
         print(f"Validation : loss = {val_loss}")
 
-def evaluate_denorm(model, val_loader, loss_fn, init_h):
+def evaluate_denorm(device, model, val_loader, loss_fn, init_h):
     """
     Evaluate model on validation data.
     """
@@ -83,7 +83,7 @@ def evaluate_denorm(model, val_loader, loss_fn, init_h):
     with torch.no_grad():
         
         for features, label in val_loader:
-            #image, label = image.to(device), label.to(device) # put the data on the selected execution device
+            features, label = (features[0].to(device), features[1].to(device)), label.to(device) # put the data on the selected execution device
             if init_h == True:
                 h = model.init_hidden(features[1].shape[0])
                 output = model(features, h)

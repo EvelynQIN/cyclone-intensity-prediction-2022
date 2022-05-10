@@ -31,19 +31,22 @@ if __name__ == '__main__':
     num_layers = 5
     batch_size = 128
     
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(device)
+
     train_dataset = CycloneDataset(train_meta, train_ra, train_labels)
     val_dataset = CycloneDataset(test_meta, test_ra, test_labels)
 
     train_loader = DataLoader(train_dataset, batch_size = batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size = batch_size, shuffle = False)
 
-    model = GRU_CNN(input_size_ra, input_size_meta, hidden_size, output_size, num_layers,use_ra = True)
+    model = GRU_CNN(input_size_ra, input_size_meta, hidden_size, output_size, num_layers,use_ra = True).to(device)
     print(model)
     optimizer = torch.optim.SGD(model.parameters(), lr=0.005, momentum=0.9, weight_decay=5e-4)
     lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, n_epochs)
     loss_fn = nn.MSELoss()
 
-    train(n_epochs, model, train_loader, val_loader, optimizer, loss_fn, lr_scheduler, init_h = True)
+    train(device, n_epochs, model, train_loader, val_loader, optimizer, loss_fn, lr_scheduler, init_h = True)
     model_loss, model_loss_ts = evaluate_denorm(model, val_loader, loss_fn, init_h = True)
     print("Finel GRY MSE denormed over all timestep: {} \nFinel GRU MSE denormed for each timestep: {}".format(model_loss, model_loss_ts))
 

@@ -29,7 +29,10 @@ if __name__ == '__main__':
     PREDICT_STEP = 7
     # input dim for nn
     INPUT_DIM = 90
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(device)
+
 
     input_channels = 79  # calculate based on the CNN setting
     output_size = 6
@@ -58,7 +61,7 @@ if __name__ == '__main__':
     train_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True)
     val_loader = torch.utils.data.DataLoader(test_data, batch_size=batch_size, shuffle=True)
 
-    train(n_epochs, model, train_loader,val_loader, optimizer, loss_fn, lr_scheduler)
+    train(device, n_epochs, model, train_loader,val_loader, optimizer, loss_fn, lr_scheduler)
     model_loss, model_loss_ts = evaluate_denorm(model, val_loader, loss_fn)
     print("Finel TCN MSE denormed over all timestep: {} \nFinel TCN MSE denormed for each timestep: {}".format(model_loss, model_loss_ts))
 

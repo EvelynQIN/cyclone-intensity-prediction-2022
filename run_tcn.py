@@ -28,11 +28,14 @@ if __name__ == '__main__':
     n_epochs = 30
     loss_fn = torch.nn.MSELoss()
 
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(device)
+
     # Note: We use a very simple setting here (assuming all levels have the same # of channels.
     channel_sizes = [8] * 3 # [num of hidden units per layer] * num of levels
     kernel_size = 3
     dropout = 0.2
-    model = TCN(input_channels, output_size, channel_sizes, kernel_size=kernel_size, dropout=dropout)
+    model = TCN(input_channels, output_size, channel_sizes, kernel_size=kernel_size, dropout=dropout).to(device)
 
     # Optimization operation: Adam 
     learning_rate = 1e-4
@@ -47,7 +50,7 @@ if __name__ == '__main__':
     train_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True)
     val_loader = torch.utils.data.DataLoader(test_data, batch_size=batch_size, shuffle=True)
 
-    train(n_epochs, model, train_loader,val_loader, optimizer, loss_fn)
+    train(device, n_epochs, model, train_loader,val_loader, optimizer, loss_fn)
     model_loss, model_loss_ts = evaluate_denorm(model, val_loader, loss_fn)
     print("Finel TCN MSE denormed over all timestep: {} \nFinel TCN MSE denormed for each timestep: {}".format(model_loss, model_loss_ts))
 
