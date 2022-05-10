@@ -340,3 +340,104 @@ class CNNTest(torch.nn.Module):
         # output = self.fuse(output)
 
         return output
+
+class LSTM_CNN(torch.nn.Module):
+    """
+    para
+    - input_size: feature size
+    - hidden_size: number of hidden units
+    - output_size: number of output --> 6 predicted timesteps
+    - num_layers: layers of LSTM to stack
+    """
+    def __init__(self, input_size_ra, input_size_meta, hidden_size, output_size, num_layers, use_ra = True):
+        super().__init__()
+        self.input_size_ra = input_size_ra
+        self.input_size_meta = input_size_meta
+        self.output_size = output_size
+        self.n_layers = num_layers
+        self.hidden_size = hidden_size
+        self.lstm_meta = torch.nn.LSTM(input_size_meta, hidden_size, num_layers, batch_first=True).float()
+        self.lstm_meta_ra = torch.nn.LSTM(input_size_meta+input_size_ra, hidden_size, num_layers, batch_first=True).float()
+        self.fc = torch.nn.Linear(hidden_size, output_size)
+        self.fc_1 = torch.nn.Linear(hidden_size, 1)
+        self.use_ra = use_ra
+
+        # CNN setting
+        self.feature_map_sizes = [28, 14, 7]
+        self.filter_sizes = [3, 3]
+        self.ConvNet = ConvNet(self.feature_map_sizes, self.filter_sizes, activation=torch.nn.ReLU())  
+
+    def forward(self, x, h0):
+        # print(h0[0].shape)
+        # print(h0[1].shape)
+        (x_meta, x_ra) = x
+        # print('x_meta shape:{}'.format(x_meta.shape))
+        # print('x_ra shape:{}'.format(x_ra.shape))
+
+        if self.use_ra == True:
+            cnn_concat = self.ConvNet(x_ra) # batch_size * vector_length * timesteps    ==> 56 when [28, 14, 7] & [3, 3]
+            cnn_concat = cnn_concat.transpose(1, 2) # batch_size * timesteps * vector_length
+            new = torch.cat((cnn_concat, x_meta), 2)
+            model = self.lstm_meta_ra
+        else:
+            new = x_meta
+            model = self.lstm_meta
+
+        _, (h, _) = model(new, h0) # x_ra:(batch_size, seq_length, input_size)
+        x = self.fc(h[-1])   # get the output of the last hidden state
+        return x
+    
+
+    def init_hidden(self, batch_size):
+        hidden = (torch.zeros([self.n_layers, batch_size, self.hidden_size]), torch.zeros([self.n_layers, batch_size, self.hidden_size]))
+        return hidden
+
+class GRU_CNN(torch.nn.Module):
+    """
+    para
+    - input_size: feature size
+    - hidden_size: number of hidden units
+    - output_size: number of output --> 6 predicted timesteps
+    - num_layers: layers of GRU to stack
+    """
+    def __init__(self, input_size_ra, input_size_meta, hidden_size, output_size, num_layers, use_ra = True):
+        super().__init__()
+        self.input_size_ra = input_size_ra
+        self.input_size_meta = input_size_meta
+        self.output_size = output_size
+        self.n_layers = num_layers
+        self.hidden_size = hidden_size
+        self.lstm_meta = torch.nn.GRU(input_size_meta, hidden_size, num_layers, batch_first=True).float()
+        self.lstm_meta_ra = torch.nn.GRU(input_size_meta+input_size_ra, hidden_size, num_layers, batch_first=True).float()
+        self.fc = torch.nn.Linear(hidden_size, output_size)
+        self.use_ra = use_ra
+
+        # CNN setting
+        self.feature_map_sizes = [28, 14, 7]
+        self.filter_sizes = [3, 3]
+        self.ConvNet = ConvNet(self.feature_map_sizes, self.filter_sizes, activation=torch.nn.ReLU())  
+
+    def forward(self, x, h0):
+        # print(h0[0].shape)
+        # print(h0[1].shape)
+        (x_meta, x_ra) = x
+        # print('x_meta shape:{}'.format(x_meta.shape))
+        # print('x_ra shape:{}'.format(x_ra.shape))
+
+        if self.use_ra == True:
+            cnn_concat = self.ConvNet(x_ra) # batch_size * vector_length * timesteps    ==> 56 when [28, 14, 7] & [3, 3]
+            cnn_concat = cnn_concat.transpose(1, 2) # batch_size * timesteps * vector_length
+            new = torch.cat((cnn_concat, x_meta), 2)
+            model = self.lstm_meta_ra
+        else:
+            new = x_meta
+            model = self.lstm_meta
+
+        _, h = model(new, h0) # x_ra:(batch_size, seq_length, input_size)
+        x = self.fc(h[-1])   # get the output of the last hidden state
+        return x
+    
+
+    def init_hidden(self, batch_size):
+        hidden = torch.zeros([self.n_layers, batch_size, self.hidden_size])
+        return hidden
