@@ -54,14 +54,14 @@ if __name__ == '__main__':
     lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, EPOCHS)
 
     # transform data into tensor
-    train_data = CycloneDataset(train_meta, train_ra, train_labels)
-    test_data = CycloneDataset(test_meta, test_ra, test_labels)   
+    train_data = CycloneDataset(train_meta, train_ra, train_labels, device)
+    test_data = CycloneDataset(test_meta, test_ra, test_labels, device)   
 
     # Create DataLoaders 
     train_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True)
     val_loader = torch.utils.data.DataLoader(test_data, batch_size=batch_size, shuffle=True)
 
-    train(device, n_epochs, model, train_loader,val_loader, optimizer, loss_fn, lr_scheduler)
+    train(n_epochs, model, train_loader,val_loader, optimizer, loss_fn, lr_scheduler)
     model_loss, model_loss_ts = evaluate_denorm(model, val_loader, loss_fn)
     print("Finel TCN MSE denormed over all timestep: {} \nFinel TCN MSE denormed for each timestep: {}".format(model_loss, model_loss_ts))
 

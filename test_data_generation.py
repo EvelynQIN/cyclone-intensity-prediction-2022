@@ -15,7 +15,7 @@ if __name__ == '__main__':
                                                                                 tropical = 'extra',
                                                                                 hemi = 'N'
                                                                             )
-    dataset = Transformer("/content/datasets")
+    dataset = Transformer("/content/drive/MyDrive/dslab/ds-lab-2022-p2-cyclone/datasets")
 
     train_labels, test_labels, train_meta, test_meta, train_ra, test_ra = dataset.train_test_split()
 

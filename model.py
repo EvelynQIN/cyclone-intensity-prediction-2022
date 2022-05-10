@@ -157,7 +157,7 @@ class TCN(torch.nn.Module):
         return y
 
 class TCN_LSTM(torch.nn.Module):
-    def __init__(self, input_size, output_size, num_channels, kernel_size, dropout, lstm_hidden_size, n_layers):
+    def __init__(self, input_size, output_size, num_channels, kernel_size, dropout, lstm_hidden_size, n_layers, device):
         super(TCN_LSTM, self).__init__()
         self.tcn = TemporalConvNet(input_size, num_channels, kernel_size=kernel_size, dropout=dropout)
         self.lstm_hidden_size = lstm_hidden_size
@@ -169,6 +169,7 @@ class TCN_LSTM(torch.nn.Module):
         self.n_layers = n_layers
         self.lstm = torch.nn.LSTM(num_channels[-1], self.lstm_hidden_size, num_layers = self.n_layers, batch_first=True)  
         self.ConvNet = ConvNet(self.feature_map_sizes, self.filter_sizes, activation=torch.nn.ReLU())  
+        self.device = device
         
         
 
@@ -189,7 +190,7 @@ class TCN_LSTM(torch.nn.Module):
         return y
 
     def init_hidden(self, batch_size):
-        hidden = (torch.zeros([self.n_layers, batch_size, self.lstm_hidden_size]), torch.zeros([self.n_layers, batch_size, self.lstm_hidden_size]))
+        hidden = (torch.zeros([self.n_layers, batch_size, self.lstm_hidden_size]).to(self.device), torch.zeros([self.n_layers, batch_size, self.lstm_hidden_size]).to(self.device))
         return hidden
 
 class Lstm(torch.nn.Module):
@@ -200,7 +201,7 @@ class Lstm(torch.nn.Module):
     - output_size: number of output
     - num_layers: layers of LSTM to stack
     """
-    def __init__(self, input_size_ra, input_size_meta, hidden_size, output_size, num_layers, use_ra = True):
+    def __init__(self, input_size_ra, input_size_meta, hidden_size, output_size, num_layers, device, use_ra = True):
         super().__init__()
         self.input_size_ra = input_size_ra
         self.input_size_meta = input_size_meta
@@ -212,6 +213,7 @@ class Lstm(torch.nn.Module):
         self.fc = torch.nn.Linear(hidden_size, output_size)
         self.fc_1 = torch.nn.Linear(hidden_size, 1)
         self.use_ra = use_ra
+        self.device = device
 
     def forward(self, x, h0):
         # print(h0[0].shape)
@@ -234,7 +236,7 @@ class Lstm(torch.nn.Module):
     
 
     def init_hidden(self, batch_size):
-        hidden = (torch.zeros([self.n_layers, batch_size, self.hidden_size]), torch.zeros([self.n_layers, batch_size, self.hidden_size]))
+        hidden = (torch.zeros([self.n_layers, batch_size, self.hidden_size]).to(self.device), torch.zeros([self.n_layers, batch_size, self.hidden_size]).to(self.device))
         return hidden
 
 
@@ -349,7 +351,7 @@ class LSTM_CNN(torch.nn.Module):
     - output_size: number of output --> 6 predicted timesteps
     - num_layers: layers of LSTM to stack
     """
-    def __init__(self, input_size_ra, input_size_meta, hidden_size, output_size, num_layers, use_ra = True):
+    def __init__(self, input_size_ra, input_size_meta, hidden_size, output_size, num_layers, device, use_ra = True):
         super().__init__()
         self.input_size_ra = input_size_ra
         self.input_size_meta = input_size_meta
@@ -366,6 +368,7 @@ class LSTM_CNN(torch.nn.Module):
         self.feature_map_sizes = [28, 14, 7]
         self.filter_sizes = [3, 3]
         self.ConvNet = ConvNet(self.feature_map_sizes, self.filter_sizes, activation=torch.nn.ReLU())  
+        self.device = device
 
     def forward(self, x, h0):
         # print(h0[0].shape)
@@ -389,7 +392,7 @@ class LSTM_CNN(torch.nn.Module):
     
 
     def init_hidden(self, batch_size):
-        hidden = (torch.zeros([self.n_layers, batch_size, self.hidden_size]), torch.zeros([self.n_layers, batch_size, self.hidden_size]))
+        hidden = (torch.zeros([self.n_layers, batch_size, self.hidden_size]).to(self.device), torch.zeros([self.n_layers, batch_size, self.hidden_size]).to(self.device))
         return hidden
 
 class GRU_CNN(torch.nn.Module):
@@ -400,7 +403,7 @@ class GRU_CNN(torch.nn.Module):
     - output_size: number of output --> 6 predicted timesteps
     - num_layers: layers of GRU to stack
     """
-    def __init__(self, input_size_ra, input_size_meta, hidden_size, output_size, num_layers, use_ra = True):
+    def __init__(self, input_size_ra, input_size_meta, hidden_size, output_size, num_layers, device, use_ra = True):
         super().__init__()
         self.input_size_ra = input_size_ra
         self.input_size_meta = input_size_meta
@@ -416,6 +419,7 @@ class GRU_CNN(torch.nn.Module):
         self.feature_map_sizes = [28, 14, 7]
         self.filter_sizes = [3, 3]
         self.ConvNet = ConvNet(self.feature_map_sizes, self.filter_sizes, activation=torch.nn.ReLU())  
+        self.device = device
 
     def forward(self, x, h0):
         # print(h0[0].shape)
@@ -439,5 +443,5 @@ class GRU_CNN(torch.nn.Module):
     
 
     def init_hidden(self, batch_size):
-        hidden = torch.zeros([self.n_layers, batch_size, self.hidden_size])
+        hidden = torch.zeros([self.n_layers, batch_size, self.hidden_size]).to(self.device)
         return hidden

@@ -108,7 +108,7 @@ class Transformer:
 
 class CycloneDataset(torch.utils.data.Dataset):
 
-    def __init__(self, meta_feature, ra_feature, label):
+    def __init__(self, meta_feature, ra_feature, label, device):
         super().__init__()
         self.meta_feature = torch.from_numpy(meta_feature).float()
 
@@ -116,11 +116,13 @@ class CycloneDataset(torch.utils.data.Dataset):
         self.ra_feature = torch.from_numpy(ra_feature.transpose((0, 1, 3, 2)).reshape(-1, 6, 7, 11, 11)).float()
 
         self.label = torch.from_numpy(label).float()  
+      
+        self.device = device
 
 
     def __getitem__(self, index):
         (meta_feature, ra_feature), label = (self.meta_feature[index], self.ra_feature[index]), self.label[index]
-        return (meta_feature, ra_feature), label
+        return (meta_feature.to(self.device), ra_feature.to(self.device)), label.to(self.device)
 
     def __len__(self):
         return self.meta_feature.size(0)
