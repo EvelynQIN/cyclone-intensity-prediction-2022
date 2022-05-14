@@ -58,10 +58,6 @@ class RawData:
             for m in self.months_list:
                 m_data = nc.Dataset(folder_path + "/pr_" + str(y) + m + ".nc")
                 for k in columns:
-                    if (np.sum(np.isnan(m_data.variables[k][:].data)) > 0) or (np.sum(np.isinf(m_data.variables[k][:].data)) > 0):
-                        self.invalid_ids.update(np.argwhere(np.isnan(m_data.variables[k][:].data))[:, 0])
-                        self.invalid_ids.update(np.argwhere(np.isinf(m_data.variables[k][:].data))[:, 0])
-
                     self._dataset[k] = np.append(self._dataset[k], m_data.variables[k][:].data, axis = 0) if len(self._dataset[k]) > 0 else m_data.variables[k][:].data
                 self._dataset['year'] = np.append(self._dataset['year'], [y] * len(m_data.dimensions['ind']))
                 self._dataset['month'] = np.append(self._dataset['month'], [int(m)] * len(m_data.dimensions['ind']))
@@ -73,9 +69,13 @@ class RawData:
         self._dataset['z'] = pos_z
 
         # Delete the whole cyclone with nan values
-        self.invalid_ids = list(self.invalid_ids)
         for col in self._dataset.keys():
-            self._dataset[col] = np.delete(self._dataset[col], self.invalid_ids, 0)
+            self.invalid_ids.update(self._dataset['id'][np.argwhere(np.isnan(self._dataset[col]))[:, 0]])
+        
+        rid_list = [cid in self.invalid_ids for cid in self._dataset['id']]
+
+        for col in self._dataset.keys():
+            self._dataset[col] = np.delete(self._dataset[col], rid_list, 0)
 
 
         # Make the id of the first cyclone track start with 0 (currently it starts with some higher number)

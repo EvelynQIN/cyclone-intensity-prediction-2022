@@ -7,24 +7,27 @@ import pickle
 
 
 if __name__ == '__main__':
+
+    to_trainpath = "datasets/train_N_extra"
+    # to_trainpath = "datasets/debugger"
+
     train_num_subtracks = extract_timeseries(
                                               raw_path = "predictors",
                                               ra_feature_names = ['U300', 'V300', 'U500', 'V500', 'T850', 'MSL', 'PV320'],
                                               meta_feature_names = ['pmin', 'x', 'y', 'z', 'month'],
-                                              year_range = [2000, 2001], # train_data
-                                              months_list = ['01','02'], #,'03','04','05','06','07','08','09','10','11','12'],
-                                              to_path = "datasets/train", 
+                                              year_range = [2000, 2009], # train_data
+                                              months_list = ['01','02','03','04','05','06','07','08','09','10','11','12'],
+                                              to_path = to_trainpath, 
                                               tropical = 'extra',
                                               hemi = 'N'
                                                     )
-    print("Data extraction complete")
-    train_dataset = Transformer("datasets/train")
-    print("Data transformer complete")
+    print("***********Data extraction complete*************")
+    train_dataset = Transformer(to_trainpath)
+    print("***********Data transformer complete*************")
 
     train_labels, val_labels, train_meta, val_meta, train_ra, val_ra = train_dataset.train_test_split(split = True)
-    print("Data split complete")
+    print("**********Data split complete*********************")
 
-    to_trainpath = "datasets/train"
     pickle.dump(train_labels, open(to_trainpath + "/train_labels.pkl", "wb"))
     pickle.dump(val_labels, open(to_trainpath + "/val_labels.pkl", "wb"))
     pickle.dump(train_meta, open(to_trainpath + "/train_meta.pkl", "wb"))
