@@ -32,7 +32,7 @@ def extract_timeseries(
 
     # Load the data into a RawData object
     data = RawData(raw_path, year_range, months_list)
-    pickle.dump(data, open(to_path + "/rawdata.pkl", "wb"))  # save the raw data into pickle
+    pickle.dump(data._dataset['id'], open(to_path + "/cyclone_ids.pkl", "wb"))  # save the raw data into pickle
 
     print("===========extract_timeseries.Raw data complete!============")
 
