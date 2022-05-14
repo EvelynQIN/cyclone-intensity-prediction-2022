@@ -51,21 +51,33 @@ class RawData:
         self._dataset['year'] = []
         self._dataset['month'] = []
 
+        self.invalid_ids = set() # keep track of unique cyclone ids with nan values & inf values
+
         # iteratively read all the data records from year_range[0] (inclusive) to year_range[1] (exclusive)
         for y in range(self.year_range[0], self.year_range[1]):
             for m in self.months_list:
                 m_data = nc.Dataset(folder_path + "/pr_" + str(y) + m + ".nc")
                 for k in columns:
+                    if (np.sum(np.isnan(m_data.variables[k][:].data)) > 0) or (np.sum(np.isinf(m_data.variables[k][:].data)) > 0):
+                        self.invalid_ids.update(np.argwhere(np.isnan(m_data.variables[k][:].data))[:, 0])
+                        self.invalid_ids.update(np.argwhere(np.isinf(m_data.variables[k][:].data))[:, 0])
+
                     self._dataset[k] = np.append(self._dataset[k], m_data.variables[k][:].data, axis = 0) if len(self._dataset[k]) > 0 else m_data.variables[k][:].data
                 self._dataset['year'] = np.append(self._dataset['year'], [y] * len(m_data.dimensions['ind']))
                 self._dataset['month'] = np.append(self._dataset['month'], [int(m)] * len(m_data.dimensions['ind']))
+                print("extracting data from {} in month {}".format(y, m))
          
         pos_x, pos_y, pos_z = to_xyz(np.array(self._dataset['lon']), np.array(self._dataset['lat']))
         self._dataset['x'] = pos_x
         self._dataset['y'] = pos_y
         self._dataset['z'] = pos_z
 
-        
+        # Delete the whole cyclone with nan values
+        self.invalid_ids = list(self.invalid_ids)
+        for col in self._dataset.keys():
+            self._dataset[col] = np.delete(self._dataset[col], self.invalid_ids, 0)
+
+
         # Make the id of the first cyclone track start with 0 (currently it starts with some higher number)
         start_id = self._dataset['id'][0]
         self._dataset['id'] -= start_id

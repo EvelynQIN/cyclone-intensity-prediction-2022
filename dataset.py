@@ -44,7 +44,7 @@ def extract_timeseries(
     ra_features = []
     meta_features = []
     labels = []
-    moving_avg = []
+    # moving_avg = []
 
     # Iterate over each cyclone
     for track in cyclone_tracks:
