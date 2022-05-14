@@ -8,21 +8,21 @@ import pickle
 
 if __name__ == '__main__':
     train_num_subtracks = extract_timeseries(
-                                              raw_path = "/content/drive/MyDrive/dslab/ds-lab-2022-p2-cyclone/predictors",
+                                              raw_path = "predictors",
                                               ra_feature_names = ['U300', 'V300', 'U500', 'V500', 'T850', 'MSL', 'PV320'],
                                               meta_feature_names = ['pmin', 'x', 'y', 'z', 'month'],
-                                              year_range = [2000, 2009], # train_data
-                                              months_list = ['01','02','03','04','05','06','07','08','09','10','11','12'],
+                                              year_range = [2000, 2001], # train_data
+                                              months_list = ['01','02'], #,'03','04','05','06','07','08','09','10','11','12'],
                                               to_path = "datasets/train", 
                                               tropical = 'extra',
                                               hemi = 'N'
                                                     )
-    print("train_data extraction complete")
-    train_dataset = Transformer("/content/drive/MyDrive/dslab/ds-lab-2022-p2-cyclone/datasets/train")
-    print("train_data transformation complete")
+    print("Data extraction complete")
+    train_dataset = Transformer("datasets/train")
+    print("Data transformer complete")
 
     train_labels, val_labels, train_meta, val_meta, train_ra, val_ra = train_dataset.train_test_split(split = True)
-    print("train_val split complete")
+    print("Data split complete")
 
     to_trainpath = "datasets/train"
     pickle.dump(train_labels, open(to_trainpath + "/train_labels.pkl", "wb"))
@@ -31,11 +31,10 @@ if __name__ == '__main__':
     pickle.dump(val_meta, open(to_trainpath + "/val_meta.pkl", "wb"))
     pickle.dump(train_ra, open(to_trainpath + "/train_ra.pkl", "wb"))
     pickle.dump(val_ra, open(to_trainpath + "/val_ra.pkl", "wb"))
-    
-    print("train data saved")
+
 
     # test_num_subtracks = extract_timeseries(
-    #                                         raw_path = "/content/drive/MyDrive/dslab/ds-lab-2022-p2-cyclone/predictors",
+    #                                         raw_path = "predictors",
     #                                         ra_feature_names = ['U300', 'V300', 'U500', 'V500', 'T850', 'MSL', 'PV320'],
     #                                         meta_feature_names = ['pmin', 'x', 'y', 'z', 'month'],
     #                                         year_range = [2009, 2010], # test_data
@@ -44,8 +43,7 @@ if __name__ == '__main__':
     #                                         tropical = 'extra',
     #                                         hemi = 'N'
     #                                     )
-    # print("test_data extraction complete")
-    # test_dataset = Transformer("/content/drive/MyDrive/dslab/ds-lab-2022-p2-cyclone/datasets/test")
+    # test_dataset = Transformer("datasets/test")
 
     # test_labels, test_meta, test_ra = test_dataset.train_test_split(split = False)
 

@@ -141,12 +141,14 @@ class RawData:
         }
 
         for feature in features:
+            
             col = self._dataset[feature]
             if feature in ['U300', 'V300', 'U500','V500','T850','MSL','PV320']:
                 col = np.clip(col, a_min=ra_clamp_values[feature][0], a_max=ra_clamp_values[feature][1])
             mean = np.mean(col.flatten()) if index.size == 0 else np.mean(col[index].flatten())
             std =  np.std(col.flatten()) if index.size == 0 else np.std(col[index].flatten())
             scaler_dict[feature] = [mean, std]
+            print("=======Rawdata. calulate the mean&std of feature: {} with mean {}  || std {}=======".format(feature, mean, std))
         return scaler_dict
 
     @property

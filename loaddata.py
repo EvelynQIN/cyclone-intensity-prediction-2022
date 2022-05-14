@@ -40,6 +40,7 @@ class Transformer:
         # Iterate through each re-analysis feature and clamp each feature
         for feature_name in self.ra_clamp_values:
             # Clamp the features
+            print("Clamp feature: {}".format(feature_name))
             fmin, fmax, indices = self.ra_clamp_values[feature_name]
             ra_features[:, :, :, indices] = np.clip(ra_features[:, :, :, indices], a_min=fmin, a_max=fmax)
         self.ra_features = ra_features
@@ -81,11 +82,13 @@ class Transformer:
         # standardize meta featrues --> first 4 cols ['pmin', 'x', 'y', 'z', 'month-one-hot']
         meta_cols = ['pmin', 'x', 'y', 'z']
         for i in range(cols):
+            print("Standardize meta features: {}".format(meta_cols[i]))
             self.meta_features[:, :, i] = (self.meta_features[:, :, i] - scaler_dict[meta_cols[i]][0]) / scaler_dict[meta_cols[i]][1]
 
         # standardize ra featrues --> ['U300', 'V300', 'U500', 'V500', 'T850', 'MSL', 'PV320']
         ra_cols = ['U300', 'V300', 'U500', 'V500', 'T850', 'MSL', 'PV320']
         for i in range(len(ra_cols)):
+            print("Standardize ra features: {}".format(ra_cols[i]))
             self.ra_features[:, :, :, i] = (self.ra_features[:, :, :, i] - scaler_dict[ra_cols[i]][0]) / scaler_dict[ra_cols[i]][1]
 
     

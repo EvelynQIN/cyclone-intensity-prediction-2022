@@ -32,9 +32,11 @@ def extract_timeseries(
 
     # Load the data into a RawData object
     data = RawData(raw_path, year_range, months_list)
+    print("===========extract_timeseries.Raw data complete!============")
 
     # Get the scaler dict
     scaler_dict = data.mean_std_cal(tropical, hemi)
+    print("===========extract_timeseries.mean_std_cal complete!============")
 
     # Get a list of all cyclone tracks
     cyclone_tracks = data.tracks
@@ -47,7 +49,7 @@ def extract_timeseries(
     # moving_avg = []
 
     # Iterate over each cyclone
-    for track in cyclone_tracks:
+    for (track_id , track) in enumerate(cyclone_tracks):
 
         # We only want to look at cyclones which live at least 14 hours. (7 h -> pred next 7 h)
         if len(track) < 12:
@@ -83,6 +85,10 @@ def extract_timeseries(
 
         num_subtracks += len(sub_tracks)
 
+        # print num of subtracks info
+        if track_id % 500 == 0:
+            print("extracting {} cyclones with {} subtracks".format(track_id, num_subtracks))
+
         # Iterate over each sub-track
         for sub_track in sub_tracks:
 
@@ -116,7 +122,7 @@ def extract_timeseries(
             labels.append([sub_labels]) 
             # moving_avg.append([sub_mov_avg])
 
-            
+    print("===========extract_timeseries.cyclone track extraction complete!============")    
 
     # Combine the feature lists
     ra_features = np.vstack(ra_features)
