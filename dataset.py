@@ -1,6 +1,7 @@
 from os import path
 import numpy as np
 import pickle
+import pandas as pd
 
 from rawdata import RawData
 
@@ -31,8 +32,10 @@ def extract_timeseries(
     print("Processing: ", raw_path)
 
     # Load the data into a RawData object
-    data = RawData(raw_path, year_range, months_list)
-    pickle.dump(data._dataset['id'], open(to_path + "/cyclone_ids.pkl", "wb"))  # save the raw data into pickle
+    # data = RawData(raw_path, year_range, months_list)
+    data = pd.read_pickle(to_path + "/raw.pkl")
+
+    #pickle.dump(data._dataset['id'], open(to_path + "/cyclone_ids.pkl", "wb"))  # save the raw data into pickle
 
     print("===========extract_timeseries.Raw data complete!============")
 
