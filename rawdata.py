@@ -147,6 +147,7 @@ class RawData:
             'PV320': [-30, 30.0, 6]
         }
 
+<<<<<<< HEAD
         # for feature in features: 
             
         #     col = self._dataset[feature]
@@ -160,17 +161,26 @@ class RawData:
 
         # perform feature clamp & standard scale directly to reduce mem usage
         for feature in features: 
+=======
+        for feature in features:
+            
+            col = self._dataset[feature]
+>>>>>>> 720d9617c54c477a7fedebb76f12daba901f2e07
             if feature in ['U300', 'V300', 'U500','V500','T850','MSL','PV320']:
                 self._dataset[feature] = np.clip(self._dataset[feature], a_min=ra_clamp_values[feature][0], a_max=ra_clamp_values[feature][1])
             mean = np.mean(self._dataset[feature].flatten()) if index.size == 0 else np.mean(self._dataset[feature][index].flatten())
             std =  np.std(self._dataset[feature].flatten()) if index.size == 0 else np.std(self._dataset[feature][index].flatten())
             
             scaler_dict[feature] = [mean, std]
+<<<<<<< HEAD
             self._dataset[feature] = (self._dataset[feature] - mean) / std
 
             print("=======Rawdata. calulate the mean&std of feature: {} with mean {}  || std {}=======".format(feature, mean, std))
         # perform one-hot encoding to "month" feature
         self._dataset['month']
+=======
+            print("=======Rawdata. calulate the mean&std of feature: {} with mean {}  || std {}=======".format(feature, mean, std))
+>>>>>>> 720d9617c54c477a7fedebb76f12daba901f2e07
         return scaler_dict
 
     @property

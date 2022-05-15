@@ -2,6 +2,7 @@ from os import path
 import numpy as np
 import pandas as pd
 import pickle
+import pandas as pd
 
 from rawdata import RawData
 
@@ -38,11 +39,18 @@ def extract_timeseries(
     print("Processing: ", raw_path)
 
     # Load the data into a RawData object
+<<<<<<< HEAD
     data = RawData(raw_path, year_range, months_list)
     #data = pd.read_pickle(to_path + "/raw.pkl")
 
     pickle.dump(data._dataset['id'], open(to_path + "/cyclone_ids.pkl", "wb"))  # save the raw data into pickle
     #pickle.dump(data, open(to_path + "/raw.pkl", "wb"))
+=======
+    # data = RawData(raw_path, year_range, months_list)
+    data = pd.read_pickle(to_path + "/raw.pkl")
+
+    #pickle.dump(data._dataset['id'], open(to_path + "/cyclone_ids.pkl", "wb"))  # save the raw data into pickle
+>>>>>>> 720d9617c54c477a7fedebb76f12daba901f2e07
 
     print("===========extract_timeseries.Raw data complete!============")
 
@@ -101,7 +109,11 @@ def extract_timeseries(
         num_subtracks += len(sub_tracks)
 
         # print num of subtracks info
+<<<<<<< HEAD
         if track_id % 10000 == 0:
+=======
+        if track_id % 500 == 0:
+>>>>>>> 720d9617c54c477a7fedebb76f12daba901f2e07
             print("extracting {} cyclones with {} subtracks".format(track_id, num_subtracks))
 
         # Iterate over each sub-track
@@ -138,7 +150,11 @@ def extract_timeseries(
             labels.append(sub_labels)
             # moving_avg.append([sub_mov_avg])
 
+<<<<<<< HEAD
     print("===========extract_timeseries: {} cyclone tracks with {} sub-tracks extraction complete!============".format(track_id, num_subtracks))    
+=======
+    print("===========extract_timeseries.cyclone track extraction complete!============")    
+>>>>>>> 720d9617c54c477a7fedebb76f12daba901f2e07
 
     # Combine the feature lists
     # ra_features = np.vstack(ra_features)
