@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import numpy as np
 import torch
+import pickle
 
 
 class Transformer:
@@ -11,10 +12,14 @@ class Transformer:
     def __init__(self, data_dir):
 
         self.rng = np.random.RandomState(42)
+        self.data_dir = data_dir
         self.ra_feature_file = os.path.join(data_dir, "ra_features.pkl")
         self.meta_file = os.path.join(data_dir, "meta_features.pkl")
         self.label_file = os.path.join(data_dir, "labels.pkl")
         self.scaler_dict_file = os.path.join(data_dir, "scaler_dict.pkl")
+
+        self.labels = pd.read_pickle(self.label_file)
+        self.ra_features = pd.read_pickle(self.ra_feature_file)
 
         self.ra_clamp_values = {
             # Each feature stores a min, max and indices tuple
@@ -27,11 +32,11 @@ class Transformer:
             'PV320': [-30, 30.0, 6]
         }
 
-        self.ra_features_clamper()
+        #self.ra_features_clamper()
 
         self.one_hot_encoder(month_index = 4)
 
-        self.standard_scaler()
+        #self.standard_scaler()
 
 
     def ra_features_clamper(self):        
@@ -40,6 +45,7 @@ class Transformer:
         # Iterate through each re-analysis feature and clamp each feature
         for feature_name in self.ra_clamp_values:
             # Clamp the features
+            print("Clamp feature: {}".format(feature_name))
             fmin, fmax, indices = self.ra_clamp_values[feature_name]
             ra_features[:, :, :, indices] = np.clip(ra_features[:, :, :, indices], a_min=fmin, a_max=fmax)
         self.ra_features = ra_features
@@ -81,11 +87,13 @@ class Transformer:
         # standardize meta featrues --> first 4 cols ['pmin', 'x', 'y', 'z', 'month-one-hot']
         meta_cols = ['pmin', 'x', 'y', 'z']
         for i in range(cols):
+            print("Standardize meta features: {}".format(meta_cols[i]))
             self.meta_features[:, :, i] = (self.meta_features[:, :, i] - scaler_dict[meta_cols[i]][0]) / scaler_dict[meta_cols[i]][1]
 
         # standardize ra featrues --> ['U300', 'V300', 'U500', 'V500', 'T850', 'MSL', 'PV320']
         ra_cols = ['U300', 'V300', 'U500', 'V500', 'T850', 'MSL', 'PV320']
         for i in range(len(ra_cols)):
+            print("Standardize ra features: {}".format(ra_cols[i]))
             self.ra_features[:, :, :, i] = (self.ra_features[:, :, :, i] - scaler_dict[ra_cols[i]][0]) / scaler_dict[ra_cols[i]][1]
 
     
@@ -104,10 +112,40 @@ class Transformer:
           train_labels, test_labels = self.labels[:split_ind], self.labels[split_ind:]
           train_meta, test_meta = self.meta_features[:split_ind], self.meta_features[split_ind:]
           train_ra, test_ra = self.ra_features[:split_ind], self.ra_features[split_ind:]
-          return train_labels, test_labels, train_meta, test_meta, train_ra, test_ra
+          pickle.dump(train_labels, open(self.data_dir + "/train_labels.pkl", "wb"), protocol = 4)
+          pickle.dump(test_labels, open(self.data_dir + "/val_labels.pkl", "wb"), protocol = 4)
+          pickle.dump(train_meta, open(self.data_dir + "/train_meta.pkl", "wb"), protocol = 4)
+          pickle.dump(test_meta, open(self.data_dir + "/val_meta.pkl", "wb"), protocol = 4)
+          pickle.dump(train_ra, open(self.data_dir + "/train_ra.pkl", "wb"), protocol = 4)
+          pickle.dump(test_ra, open(self.data_dir + "/val_ra.pkl", "wb"), protocol = 4)
+          print("**********Data split and save complete*********************")
+
+          print('Shape of train_meta_features: {}'.format(train_meta.shape))  
+
+          print('Shape of val_meta_features: {}'.format(test_meta.shape))  
+
+          print('Shape of train_ra_features: {}'.format(train_ra.shape))  
+
+          print('Shape of val_ra_features: {}'.format(test_ra.shape))  
+          
+          print('Shape of train_labels: {}'.format(train_labels.shape))  
+
+          print('Shape of val_labels: {}'.format(test_labels.shape))  
+
+          print("======================================================")
           
         else:
-          return self.labels, self.meta, self.ra
+          pickle.dump(self.labels, open(self.data_dir + "/test_labels.pkl", "wb"), protocol = 4)
+          pickle.dump(self.meta, open(self.data_dir + "/test_meta.pkl", "wb"), protocol = 4)
+          pickle.dump(self.ra, open(self.data_dir + "/test_ra.pkl", "wb"), protocol = 4)
+
+          print('Shape of test_meta_features: {}'.format(self.meta.shape))   
+
+          print('Shape of test_ra_features: {}'.format(self.ra.shape))  
+          
+          print('Shape of test_labels: {}'.format(self.labels.shape))
+
+          print("======================================================")
 
 class CycloneDataset(torch.utils.data.Dataset):
 

@@ -51,6 +51,13 @@ class RawData:
         self._dataset['year'] = []
         self._dataset['month'] = []
 
+        # one hot encoding of the month
+        full_months = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12']
+        one_encodes = pd.get_dummies(full_months, drop_first=True)
+        month_encoder = dict()        
+        for i, month in enumerate(full_months):
+            month_encoder[month] = list(one_encodes.loc[i])
+
         self.invalid_ids = set() # keep track of unique cyclone ids with nan values & inf values
 
         # iteratively read all the data records from year_range[0] (inclusive) to year_range[1] (exclusive)
@@ -58,13 +65,9 @@ class RawData:
             for m in self.months_list:
                 m_data = nc.Dataset(folder_path + "/pr_" + str(y) + m + ".nc")
                 for k in columns:
-                    if (np.sum(np.isnan(m_data.variables[k][:].data)) > 0) or (np.sum(np.isinf(m_data.variables[k][:].data)) > 0):
-                        self.invalid_ids.update(np.argwhere(np.isnan(m_data.variables[k][:].data))[:, 0])
-                        self.invalid_ids.update(np.argwhere(np.isinf(m_data.variables[k][:].data))[:, 0])
-
                     self._dataset[k] = np.append(self._dataset[k], m_data.variables[k][:].data, axis = 0) if len(self._dataset[k]) > 0 else m_data.variables[k][:].data
                 self._dataset['year'] = np.append(self._dataset['year'], [y] * len(m_data.dimensions['ind']))
-                self._dataset['month'] = np.append(self._dataset['month'], [int(m)] * len(m_data.dimensions['ind']))
+                self._dataset['month'] = np.append(self._dataset['month'], [month_encoder[m]] * len(m_data.dimensions['ind']), axis = 0) if len(self._dataset['month']) > 0 else [month_encoder[m]] * len(m_data.dimensions['ind'])
                 print("extracting data from {} in month {}".format(y, m))
          
         pos_x, pos_y, pos_z = to_xyz(np.array(self._dataset['lon']), np.array(self._dataset['lat']))
@@ -73,9 +76,13 @@ class RawData:
         self._dataset['z'] = pos_z
 
         # Delete the whole cyclone with nan values
-        self.invalid_ids = list(self.invalid_ids)
         for col in self._dataset.keys():
-            self._dataset[col] = np.delete(self._dataset[col], self.invalid_ids, 0)
+            self.invalid_ids.update(self._dataset['id'][np.argwhere(np.isnan(self._dataset[col]))[:, 0]])
+        
+        rid_list = [cid in self.invalid_ids for cid in self._dataset['id']]
+
+        for col in self._dataset.keys():
+            self._dataset[col] = np.delete(self._dataset[col], rid_list, 0)
 
 
         # Make the id of the first cyclone track start with 0 (currently it starts with some higher number)
@@ -106,7 +113,7 @@ class RawData:
         Returns:
             a dict contains the mean & std of each feature
         """
-        features = ['lon', 'lat', 'U500', 'V500', 'U300', 'V300', 'T850', 'MSL', 'PV320', 'pmin', 'x', 'y', 'z']
+        features = ['U500', 'V500', 'U300', 'V300', 'T850', 'MSL', 'PV320', 'pmin', 'x', 'y', 'z']
 
         if tropical == 'tropical' and hemi == 'N':
             index = np.where((self._dataset['lat'] >= 0) & (self._dataset['lat'] <= 23.5))[0]
@@ -140,13 +147,30 @@ class RawData:
             'PV320': [-30, 30.0, 6]
         }
 
-        for feature in features:
-            col = self._dataset[feature]
+        # for feature in features: 
+            
+        #     col = self._dataset[feature]
+        #     if feature in ['U300', 'V300', 'U500','V500','T850','MSL','PV320']:
+        #         col = np.clip(col, a_min=ra_clamp_values[feature][0], a_max=ra_clamp_values[feature][1])
+        #     mean = np.mean(col.flatten()) if index.size == 0 else np.mean(col[index].flatten())
+        #     std =  np.std(col.flatten()) if index.size == 0 else np.std(col[index].flatten())
+        #     scaler_dict[feature] = [mean, std]
+        #     print("=======Rawdata. calulate the mean&std of feature: {} with mean {}  || std {}=======".format(feature, mean, std))
+        # return scaler_dict
+
+        # perform feature clamp & standard scale directly to reduce mem usage
+        for feature in features: 
             if feature in ['U300', 'V300', 'U500','V500','T850','MSL','PV320']:
-                col = np.clip(col, a_min=ra_clamp_values[feature][0], a_max=ra_clamp_values[feature][1])
-            mean = np.mean(col.flatten()) if index.size == 0 else np.mean(col[index].flatten())
-            std =  np.std(col.flatten()) if index.size == 0 else np.std(col[index].flatten())
+                self._dataset[feature] = np.clip(self._dataset[feature], a_min=ra_clamp_values[feature][0], a_max=ra_clamp_values[feature][1])
+            mean = np.mean(self._dataset[feature].flatten()) if index.size == 0 else np.mean(self._dataset[feature][index].flatten())
+            std =  np.std(self._dataset[feature].flatten()) if index.size == 0 else np.std(self._dataset[feature][index].flatten())
+            
             scaler_dict[feature] = [mean, std]
+            self._dataset[feature] = (self._dataset[feature] - mean) / std
+
+            print("=======Rawdata. calulate the mean&std of feature: {} with mean {}  || std {}=======".format(feature, mean, std))
+        # perform one-hot encoding to "month" feature
+        self._dataset['month']
         return scaler_dict
 
     @property
