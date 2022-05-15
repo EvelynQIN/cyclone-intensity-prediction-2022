@@ -10,7 +10,8 @@ def extract_timeseries(
     raw_path,
     ra_feature_names,
     meta_feature_names,
-    to_path,
+    train_path,
+    test_path,
     start_stride, 
     split, 
     split_ratio,
@@ -29,6 +30,8 @@ def extract_timeseries(
         meta_feature_names: subset of ['time', 'lon', 'lat', 'pmin', 'id', 'month']
         tropical = ['tropical', 'extra', 'mix'], default = 'mix'
         hemi = ['N', 'S', 'mix'], default = 'mix'
+        train_path: the path for test data to read to scaler dict
+        test_path: deal with only test data set, None if not test data
     Returns:
         num_subtracks
         ra_features
@@ -37,6 +40,8 @@ def extract_timeseries(
         moving_avg
     """
     print("Processing: ", raw_path)
+
+    to_path = test_path if test_path else train_path
 
     # Load the data into a RawData object
     data = RawData(raw_path, year_range, months_list)
@@ -48,8 +53,8 @@ def extract_timeseries(
     print("===========extract_timeseries.Raw data complete!============")
 
     # Get the scaler dict
-    scaler_dict = data.mean_std_cal(tropical, hemi)
-    print("===========extract_timeseries.mean_std_cal complete!============")
+    data.clp_std(train_path = train_path, test_path = test_path, tropical = tropical, hemi = hemi)
+    print("===========extract_timeseries.clp_std complete!============")
 
     # Get a list of all cyclone tracks
     cyclone_tracks = data.tracks
@@ -116,13 +121,13 @@ def extract_timeseries(
             # Iterate over the first 7 time steps and extract the data
             for index, step in enumerate(sub_track[:6]):
 
-                # First get the reanalysis features for each of the first 7 time steps
-                sub_ra_features.append(step.get_ra_features(ra_feature_names, time_step=index+1).T)
+                # First get the reanalysis features for each of the first 6 time steps
+                sub_ra_features.append(step.get_ra_features(ra_feature_names))
 
                 # Next, get the meta features for each time step
                 sub_meta_features.append(step.get_meta_features(meta_feature_names))
 
-                # Fetch the intensity "pmin" of the time step 7 steps in the future
+                # Fetch the intensity "pmin" of the time step 6 steps in the future
                 label = sub_track[index + 6].get_meta_features(["pmin"])[0]
                 sub_labels.append(label)
                 # sub_labels = np.array([label]) if sub_labels.shape[0] == 0 else np.append(sub_labels, [label], axis = 0)
@@ -174,7 +179,6 @@ def extract_timeseries(
         pickle.dump(meta_features[split_ind:], open(to_path + "/val_meta.pkl", "wb"), protocol = 4)
         pickle.dump(ra_features[:split_ind], open(to_path + "/train_ra.pkl", "wb"), protocol = 4)
         pickle.dump(ra_features[split_ind:], open(to_path+ "/val_ra.pkl", "wb"), protocol = 4)
-        pickle.dump(scaler_dict, open(to_path + "/scaler_dict.pkl", "wb"))
         print("**********Data split and save complete*********************")  
         print("======================================================")
     else:
@@ -191,7 +195,7 @@ def extract_timeseries(
         pickle.dump(meta_features, open(to_path + "/meta_features.pkl", "wb"), protocol = 4)
         pickle.dump(labels, open(to_path + "/labels.pkl", "wb"), protocol = 4)
         # pickle.dump(moving_avg, open(to_path + "/moving_avg.pkl", "wb"))
-        pickle.dump(scaler_dict, open(to_path + "/scaler_dict.pkl", "wb"))
+        
         print("===========extract_timeseries.test data save complete!============") 
         
 

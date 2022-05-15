@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import netCDF4 as nc
 import torch
+import pickle
 from geometry import to_xyz
 
 def train_test_split(path, year):
@@ -105,8 +106,8 @@ class RawData:
         # Store all the TrackView objects in a list
         self._track_list = TrackViewList(track_list)
     
-    def mean_std_cal(self, tropical = 'mix', hemi = 'mix'):
-        """Calculate the mean and std for each feature for standard scaler
+    def clp_std(self, train_path, test_path = None, tropical = 'mix', hemi = 'mix'):
+        """Calculate the mean and std for each feature for standard scaler, and perform clamp & standard scaler
         Args:
             tropical: ['tropical', 'extra', 'mix'], default = 'mix'
             hemi: ['N', 'S', 'mix'], default = 'mix'
@@ -134,8 +135,6 @@ class RawData:
         else:  
             index = np.array([])
 
-        scaler_dict = dict()
-
         ra_clamp_values = {
             # Each feature stores a min, max and indices tuple
             'U300': [-100, 100.0, 0],
@@ -159,20 +158,26 @@ class RawData:
         # return scaler_dict
 
         # perform feature clamp & standard scale directly to reduce mem usage
-        for feature in features: 
-            if feature in ['U300', 'V300', 'U500','V500','T850','MSL','PV320']:
-                self._dataset[feature] = np.clip(self._dataset[feature], a_min=ra_clamp_values[feature][0], a_max=ra_clamp_values[feature][1])
-            mean = np.mean(self._dataset[feature].flatten()) if index.size == 0 else np.mean(self._dataset[feature][index].flatten())
-            std =  np.std(self._dataset[feature].flatten()) if index.size == 0 else np.std(self._dataset[feature][index].flatten())
-            
-            scaler_dict[feature] = [mean, std]
-            self._dataset[feature] = (self._dataset[feature] - mean) / std
+        if test_path: # if test dataset, standardize using the trainset dict
+            for feature in features: 
+                if feature in ['U300', 'V300', 'U500','V500','T850','MSL','PV320']:
+                    self._dataset[feature] = np.clip(self._dataset[feature], a_min=ra_clamp_values[feature][0], a_max=ra_clamp_values[feature][1])
+            scaler_dict = pd.read_pickle(train_path + "/scaler_dict.pkl")
+            self._dataset[feature] = (self._dataset[feature] - scaler_dict[feature][0]) / scaler_dict[feature][1]
 
-            print("=======Rawdata. calulate the mean&std of feature: {} with mean {}  || std {}=======".format(feature, mean, std))
-        # perform one-hot encoding to "month" feature
-        self._dataset['month']
-        return scaler_dict
+            print("=======Rawdata. test data standardization complete=======")
 
+        else:
+            scaler_dict = dict()
+            for feature in features: 
+                if feature in ['U300', 'V300', 'U500','V500','T850','MSL','PV320']:
+                    self._dataset[feature] = np.clip(self._dataset[feature], a_min=ra_clamp_values[feature][0], a_max=ra_clamp_values[feature][1])
+                mean = np.mean(self._dataset[feature].flatten()) if index.size == 0 else np.mean(self._dataset[feature][index].flatten())
+                std =  np.std(self._dataset[feature].flatten()) if index.size == 0 else np.std(self._dataset[feature][index].flatten())               
+                scaler_dict[feature] = [mean, std]
+                self._dataset[feature] = (self._dataset[feature] - mean) / std                
+                print("=======Rawdata. calulate the mean&std of feature: {} with mean {}  || std {}=======".format(feature, mean, std))
+            pickle.dump(scaler_dict, open(train_path + "/scaler_dict.pkl", "wb"))
     @property
     def tracks(self):
         return self._track_list
@@ -191,7 +196,7 @@ class StepView:
         self._raw_data = raw_data
         self._index = index
 
-    def get_ra_features(self, feature_names, shape="flat", time_step=None):
+    def get_ra_features(self, feature_names, shape="grid"):
         """
         Returns the data of one or several reanalysis features.
 
@@ -239,16 +244,13 @@ class StepView:
             A numpy 1d array containing one entry for each indicated feature
         """
 
-        features = []
+        features = np.array([])
         if not hasattr(feature_names, "__iter__"):
             feature_names = [feature_names]
 
         for feature_name in feature_names:
             feature = self._raw_data[feature_name][self._index]
-
-            features.append(feature)
-
-        features = np.array(features)
+            features = np.append(features, feature)
         return features
 
 class StepViewList:
