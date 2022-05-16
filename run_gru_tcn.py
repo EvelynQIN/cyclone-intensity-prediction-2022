@@ -14,8 +14,8 @@ BATCH_SIZE = 128
 NUM_LAYERS = 10
 
 if __name__ == '__main__':
-    train_path = 'train_toy'
-    test_path = 'test'
+    train_path = os.path.join('datasets', 'train_N_extra')
+    test_path = os.path.join('datasets', 'test')
     if not os.path.exists(os.path.join('datasets', train_path)):
         os.makedirs(os.path.join('datasets', train_path))
     if not os.path.exists(os.path.join('datasets', test_path)):
@@ -33,10 +33,7 @@ if __name__ == '__main__':
     test_meta = pd.read_pickle(test_path + "/meta_features.pkl")    
     test_ra = pd.read_pickle(test_path + "/ra_features.pkl")
     
-
-    
-
-    n_epochs = 1
+    n_epochs = 10
 
     input_channels = 71  # calculate based on the CNN setting
     output_size = 6
@@ -47,7 +44,7 @@ if __name__ == '__main__':
     dropout = 0.2
 
     hidden_size = 4
-    num_layers = 1
+    num_layers = 2
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("Using {} to process".format(device))
@@ -60,10 +57,9 @@ if __name__ == '__main__':
     val_loader = DataLoader(val_dataset, batch_size = BATCH_SIZE, shuffle = False)
     test_loader = DataLoader(test_dataset, batch_size = BATCH_SIZE, shuffle = False)
 
-
     model = TCN_GRU(input_channels, output_size, channel_sizes, kernel_size, dropout, hidden_size, num_layers, device).to(device)
     print(model)
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.005, momentum=0.9, weight_decay=5e-4)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.005, weight_decay=5e-4)
     lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, n_epochs)
     loss_fn = nn.MSELoss()
 

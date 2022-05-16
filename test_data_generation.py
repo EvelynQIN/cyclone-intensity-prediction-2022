@@ -8,8 +8,8 @@ import os
 
 if __name__ == '__main__':
 
-    to_trainpath = "train_N_extra"
-    to_testpath = "test"
+    to_trainpath = os.path.join('datasets', "train_N_extra")
+    to_testpath = os.path.join('datasets', "test")
 
     if not os.path.exists(os.path.join('datasets', to_trainpath)):
         os.makedirs(os.path.join('datasets', to_trainpath))
