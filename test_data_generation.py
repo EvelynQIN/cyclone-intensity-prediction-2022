@@ -3,12 +3,18 @@ import pandas as pd
 from dataset import extract_timeseries
 from sklearn.metrics import mean_squared_error
 import pickle
+import os
 
 
 if __name__ == '__main__':
 
-    to_trainpath = "datasets/train_N_extra"
-    to_testpath = "datasets/test"
+    to_trainpath = "train_N_extra"
+    to_testpath = "test"
+
+    if not os.path.exists(os.path.join('datasets', to_trainpath)):
+        os.makedirs(os.path.join('datasets', to_trainpath))
+    if not os.path.exists(os.path.join('datasets', to_testpath)):
+        os.makedirs(os.path.join('datasets', to_testpath))
 
     # extract trainset & val set
     extract_timeseries(
