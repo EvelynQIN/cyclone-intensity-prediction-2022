@@ -16,10 +16,10 @@ NUM_LAYERS = 10
 if __name__ == '__main__':
     train_path = os.path.join('datasets', 'train_N_extra')
     test_path = os.path.join('datasets', 'test')
-    if not os.path.exists(os.path.join('datasets', train_path)):
-        os.makedirs(os.path.join('datasets', train_path))
-    if not os.path.exists(os.path.join('datasets', test_path)):
-        os.makedirs(os.path.join('datasets', test_path))
+    if not os.path.exists(train_path):
+        os.makedirs(train_path)
+    if not os.path.exists(test_path):
+        os.makedirs(test_path)
 
     train_labels = pd.read_pickle(train_path + "/train_labels.pkl")
     val_labels = pd.read_pickle(train_path + "/val_labels.pkl")
@@ -46,7 +46,9 @@ if __name__ == '__main__':
     hidden_size = 4
     num_layers = 2
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    #device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cpu")
+
     print("Using {} to process".format(device))
     
     train_dataset = CycloneDataset(train_meta, train_ra, train_labels, device)

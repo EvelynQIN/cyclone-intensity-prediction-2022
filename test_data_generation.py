@@ -11,10 +11,10 @@ if __name__ == '__main__':
     to_trainpath = os.path.join('datasets', "train_N_extra")
     to_testpath = os.path.join('datasets', "test")
 
-    if not os.path.exists(os.path.join('datasets', to_trainpath)):
-        os.makedirs(os.path.join('datasets', to_trainpath))
-    if not os.path.exists(os.path.join('datasets', to_testpath)):
-        os.makedirs(os.path.join('datasets', to_testpath))
+    if not os.path.exists(to_trainpath):
+        os.makedirs(to_trainpath)
+    if not os.path.exists(to_testpath):
+        os.makedirs(to_testpath)
 
     # extract trainset & val set
     extract_timeseries(
