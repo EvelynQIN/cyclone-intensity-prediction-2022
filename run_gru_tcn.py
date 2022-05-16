@@ -10,26 +10,33 @@ import numpy as np
 from utils import moving_average, MSELoss_denorm
 from train import train, evaluate_denorm
 
-
-TRAIN_TEST_SPLIT_RATIO = (0.8, 0.2)
-BATCH_SIZE = 64
+BATCH_SIZE = 128
 NUM_LAYERS = 10
 
 if __name__ == '__main__':
+    train_path = 'train_toy'
+    test_path = 'test'
+    if not os.path.exists(os.path.join('datasets', train_path)):
+        os.makedirs(os.path.join('datasets', train_path))
+    if not os.path.exists(os.path.join('datasets', test_path)):
+        os.makedirs(os.path.join('datasets', test_path))
 
-    file_path = 'datasets/train_toy'
-    train_labels = pd.read_pickle(file_path + "/train_labels.pkl")
-    test_labels = pd.read_pickle(file_path + "/val_labels.pkl")
-    train_meta = pd.read_pickle(file_path + "/train_meta.pkl")
-    test_meta = pd.read_pickle(file_path + "/val_meta.pkl")
-    train_ra = pd.read_pickle(file_path + "/train_ra.pkl")
-    test_ra = pd.read_pickle(file_path + "/val_ra.pkl")
+    train_labels = pd.read_pickle(train_path + "/train_labels.pkl")
+    val_labels = pd.read_pickle(train_path + "/val_labels.pkl")
+    train_meta = pd.read_pickle(train_path + "/train_meta.pkl")
+    val_meta = pd.read_pickle(train_path + "/val_meta.pkl")
+    train_ra = pd.read_pickle(train_path + "/train_ra.pkl")
+    val_ra = pd.read_pickle(train_path + "/val_ra.pkl")
+    scaler_dict = pd.read_pickle(train_path + "/scaler_dict.pkl")
 
-    scaler_dict = pd.read_pickle(file_path + "/scaler_dict.pkl")
+    test_labels = pd.read_pickle(test_path + "/labels.pkl")  
+    test_meta = pd.read_pickle(test_path + "/meta_features.pkl")    
+    test_ra = pd.read_pickle(test_path + "/ra_features.pkl")
+    
 
+    
 
-
-    n_epochs = 5
+    n_epochs = 1
 
     input_channels = 71  # calculate based on the CNN setting
     output_size = 6
@@ -46,10 +53,13 @@ if __name__ == '__main__':
     print("Using {} to process".format(device))
     
     train_dataset = CycloneDataset(train_meta, train_ra, train_labels, device)
-    val_dataset = CycloneDataset(test_meta, test_ra, test_labels, device)
+    val_dataset = CycloneDataset(val_meta, val_ra, val_labels, device)
+    test_dataset = CycloneDataset(test_meta, test_ra, test_labels, device)
 
-    train_loader = DataLoader(train_dataset, batch_size = 64, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size = 64, shuffle = False)
+    train_loader = DataLoader(train_dataset, batch_size = BATCH_SIZE, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size = BATCH_SIZE, shuffle = False)
+    test_loader = DataLoader(test_dataset, batch_size = BATCH_SIZE, shuffle = False)
+
 
     model = TCN_GRU(input_channels, output_size, channel_sizes, kernel_size, dropout, hidden_size, num_layers, device).to(device)
     print(model)
@@ -57,26 +67,11 @@ if __name__ == '__main__':
     lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, n_epochs)
     loss_fn = nn.MSELoss()
 
-    # Define save path 
-    log_dir = 'datasets/model_logs'
-    train(n_epochs, model, train_loader, val_loader, optimizer, loss_fn, lr_scheduler, init_h = True)
+    train(n_epochs, model, train_loader, val_loader, optimizer, loss_fn, 'GRU_TCN', lr_scheduler, init_h = True)
 
-    save_path = os.path.join(log_dir, 'checkpoints', f'GRU_TCN_{n_epochs}.tar')
-
-    if not os.path.exists(os.path.join(log_dir, 'checkpoints')):
-        os.makedirs(os.path.join(log_dir, 'checkpoints'))
-
-    # Optional : save model on CPU 
-    model = model.to("cpu")
-
-    # Save the model, the optimizer state and current number of epochs
-    torch.save({
-                'epoch': n_epochs,
-                'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': optimizer.state_dict(),
-                }, save_path)
-
-    model_loss, model_loss_ts = evaluate_denorm(model, val_loader, loss_fn, scaler_dict, init_h = True)
+  
+    model_loss, model_loss_ts = evaluate_denorm(model, test_loader, loss_fn, scaler_dict, init_h = True)
+    print("====================Compare on test set:===============================")
     print("Finel GRU_TCN MSE denormed over all timestep: {} \nFinel GRU_TCN MSE denormed for each timestep: {}".format(model_loss, model_loss_ts))
 
     #calculate the baseline MSE (normalized)

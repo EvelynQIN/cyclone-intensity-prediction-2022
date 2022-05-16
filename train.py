@@ -5,6 +5,7 @@ import torch.nn.functional as F
 import pandas as pd
 import numpy as np
 import pickle
+import os
 
 
 def train_step(model, train_loader, optimizer, loss_fn, lr_scheduler = None, init_h = None):
@@ -55,16 +56,24 @@ def evaluate(model, val_loader, loss_fn, init_h = None):
 
     return total_loss
 
-def train(n_epochs, model, train_loader,val_loader, optimizer, loss_fn, lr_scheduler = None, init_h = None):
+def train(n_epochs, model, train_loader,val_loader, optimizer, loss_fn, model_name, lr_scheduler = None, init_h = None):
     """
     Train and evaluate model.
     """
     loss_dict = dict()
     loss_dict['train'] = []
     loss_dict['val'] = []
+    log_dir = 'datasets'
+
+    save_loss_path = os.path.join(log_dir, 'loss_dicts', f'{model_name}_{n_epochs}.pkl')
+    save_model_path = os.path.join(log_dir, 'checkpoints', f'{model_name}_{n_epochs}.tar')
+
+    if not os.path.exists(os.path.join(log_dir, 'checkpoints')):
+        os.makedirs(os.path.join(log_dir, 'checkpoints'))
+    if not os.path.exists(os.path.join(log_dir, 'loss_dicts')):
+        os.makedirs(os.path.join(log_dir, 'loss_dicts'))
 
     for epoch in range(n_epochs):
-        
         # train model for one epoch
         train_loss = train_step(model, train_loader, optimizer, loss_fn, lr_scheduler, init_h)
         loss_dict['train'].append(train_loss)
@@ -75,7 +84,17 @@ def train(n_epochs, model, train_loader,val_loader, optimizer, loss_fn, lr_sched
         print(f"[Epoch {epoch}] - Training : loss = {train_loss}", end=" ")
         print(f"Validation : loss = {val_loss}")  
     
-    pickle.dump(loss_dict, open(f"datasets/model_logs/loss_dict.pkl", "wb"))
+    pickle.dump(loss_dict, open(save_loss_path, "wb"))
+
+    # save model checkpoint
+
+    # Save the model, the optimizer state and current number of epochs
+    print(f"Saving model checkpoint at: {save_model_path}")
+    torch.save({
+                'epoch': n_epochs,
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                }, save_model_path)
 
 
 
