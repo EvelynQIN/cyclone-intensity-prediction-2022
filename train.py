@@ -4,6 +4,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 import pandas as pd
 import numpy as np
+import pickle
 
 
 def train_step(model, train_loader, optimizer, loss_fn, lr_scheduler = None, init_h = None):
@@ -58,18 +59,27 @@ def train(n_epochs, model, train_loader,val_loader, optimizer, loss_fn, lr_sched
     """
     Train and evaluate model.
     """
+    loss_dict = dict()
+    loss_dict['train'] = []
+    loss_dict['val'] = []
+
     for epoch in range(n_epochs):
         
         # train model for one epoch
         train_loss = train_step(model, train_loader, optimizer, loss_fn, lr_scheduler, init_h)
-
+        loss_dict['train'].append(train_loss)
         # evaluate 
         val_loss = evaluate(model, val_loader, loss_fn, init_h)
+        loss_dict['val'].append(val_loss)
 
         print(f"[Epoch {epoch}] - Training : loss = {train_loss}", end=" ")
-        print(f"Validation : loss = {val_loss}")
+        print(f"Validation : loss = {val_loss}")  
+    
+    pickle.dump(loss_dict, open(f"datasets/model_logs/loss_dict.pkl", "wb"))
 
-def evaluate_denorm(model, val_loader, loss_fn, init_h = None):
+
+
+def evaluate_denorm(model, val_loader, loss_fn, scaler_dict, init_h = None):
     """
     Evaluate model on validation data.
     """
@@ -78,7 +88,7 @@ def evaluate_denorm(model, val_loader, loss_fn, init_h = None):
     total_loss = 0
     total_loss_ts = [0] * 6
 
-    scaler_pmin = pd.read_pickle("datasets/scaler_dict.pkl")['pmin']
+    scaler_pmin = scaler_dict['pmin']
     
     with torch.no_grad():
         

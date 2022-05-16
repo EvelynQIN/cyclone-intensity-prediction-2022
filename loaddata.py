@@ -154,7 +154,7 @@ class CycloneDataset(torch.utils.data.Dataset):
         self.meta_feature = torch.from_numpy(meta_feature).float()
 
         # expected ra features to be (sample_size * time_steps * channels * 11 * 11)
-        self.ra_feature = torch.from_numpy(ra_feature.transpose((0, 1, 3, 2)).reshape(-1, 6, 7, 11, 11)).float()
+        self.ra_feature = torch.from_numpy(ra_feature).float()
 
         self.label = torch.from_numpy(label).float()  
       

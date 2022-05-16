@@ -193,6 +193,51 @@ class TCN_LSTM(torch.nn.Module):
         hidden = (torch.zeros([self.n_layers, batch_size, self.lstm_hidden_size]).to(self.device), torch.zeros([self.n_layers, batch_size, self.lstm_hidden_size]).to(self.device))
         return hidden
 
+class TCN_GRU(torch.nn.Module):
+    """
+    para
+    - input_size: feature size
+    - hidden_size: number of hidden units
+    - output_size: number of output --> 6 predicted timesteps
+    - num_layers: layers of GRU to stack
+    """
+    def __init__(self, input_size, output_size, num_channels, kernel_size, dropout, hidden_size, n_layers, device):
+        super().__init__()
+        self.tcn = TemporalConvNet(input_size, num_channels, kernel_size=kernel_size, dropout=dropout)
+        self.output_size = output_size
+        self.n_layers = n_layers
+        self.hidden_size = hidden_size
+        self.gru = torch.nn.GRU(num_channels[-1], hidden_size, n_layers, batch_first=True).float()
+        self.fc = torch.nn.Linear(hidden_size, output_size)
+        self.init_weights()
+
+        # CNN setting
+        self.feature_map_sizes = [28, 14, 7]
+        self.filter_sizes = [3, 3]
+        self.ConvNet = ConvNet(self.feature_map_sizes, self.filter_sizes, activation=torch.nn.ReLU())  
+        self.device = device
+    
+    def init_weights(self):
+        self.fc.weight.data.normal_(0, 0.01)
+
+    def forward(self, x, h0):
+        meta, ra = x
+        cnn_concat = self.ConvNet(ra) # batch_size * vector_length * timesteps    
+        meta = meta.transpose(1, 2)
+        feature_all = torch.cat((cnn_concat, meta), dim = 1) # batch_size * vector_length * timesteps    
+        tcn_output = self.tcn(feature_all)
+        tcn_output = tcn_output.transpose(1,2)
+
+
+        _, h = self.gru(tcn_output, h0) # x_ra:(batch_size, seq_length, input_size)
+        x = self.fc(h[-1])   # get the output of the last hidden state
+        return x
+    
+
+    def init_hidden(self, batch_size):
+        hidden = torch.zeros([self.n_layers, batch_size, self.hidden_size]).to(self.device)
+        return hidden
+
 class Lstm(torch.nn.Module):
     """
     para

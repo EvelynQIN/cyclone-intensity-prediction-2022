@@ -19,14 +19,14 @@ def moving_average(meta_features):
 
         return pred_intensity
 
-def MSELoss_denorm(output, label, denorm = False, time_sep = False):
+def MSELoss_denorm(output, label, scaler_dict, denorm = False, time_sep = False):
     """ denormed MSE loss
         Args:
             time_sep: True then calculate MSE for each time step
             denorm: if True then denorm the label
     """
     if denorm:
-        scaler_pmin = pd.read_pickle("datasets/scaler_dict.pkl")['pmin']
+        scaler_pmin = scaler_dict['pmin']
         output = output * scaler_pmin[1] + scaler_pmin[0]
         label = label * scaler_pmin[1] + scaler_pmin[0]
 
