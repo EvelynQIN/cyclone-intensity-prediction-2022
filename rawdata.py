@@ -159,11 +159,11 @@ class RawData:
 
         # perform feature clamp & standard scale directly to reduce mem usage
         if test_path: # if test dataset, standardize using the trainset dict
+            scaler_dict = pd.read_pickle(train_path + "/scaler_dict.pkl")
             for feature in features: 
                 if feature in ['U300', 'V300', 'U500','V500','T850','MSL','PV320']:
-                    self._dataset[feature] = np.clip(self._dataset[feature], a_min=ra_clamp_values[feature][0], a_max=ra_clamp_values[feature][1])
-            scaler_dict = pd.read_pickle(train_path + "/scaler_dict.pkl")
-            self._dataset[feature] = (self._dataset[feature] - scaler_dict[feature][0]) / scaler_dict[feature][1]
+                    self._dataset[feature] = np.clip(self._dataset[feature], a_min=ra_clamp_values[feature][0], a_max=ra_clamp_values[feature][1])            
+                self._dataset[feature] = (self._dataset[feature] - scaler_dict[feature][0]) / scaler_dict[feature][1]
 
             print("=======Rawdata. test data standardization complete=======")
 

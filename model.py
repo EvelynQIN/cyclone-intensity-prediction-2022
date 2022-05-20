@@ -210,18 +210,26 @@ class TCN_GRU(torch.nn.Module):
         self.gru = torch.nn.GRU(num_channels[-1], hidden_size, n_layers, batch_first=True).float()
         self.fc = torch.nn.Linear(hidden_size, output_size)
         self.init_weights()
+        self.args = {'input_size': input_size, 
+                     'output_size': output_size,
+                     'num_channels': num_channels,
+                     'kernel_size': kernel_size,
+                     'dropout': dropout,
+                     'hidden_size': hidden_size,
+                     'n_layers': n_layers,
+                     'device': device} # save the args for reconstructing the checkppints
 
         # CNN setting
-        self.feature_map_sizes = [28, 14, 7]
-        self.filter_sizes = [3, 3]
+        self.feature_map_sizes = [8, 16]
+        self.filter_sizes = [2, 2]
         self.ConvNet = ConvNet(self.feature_map_sizes, self.filter_sizes, activation=torch.nn.ReLU())  
         self.device = device
     
     def init_weights(self):
         self.fc.weight.data.normal_(0, 0.01)
 
-    def forward(self, x, h0):
-        meta, ra = x
+    def forward(self, x):
+        meta, ra = x[:, :, :15], x[:, :, 15:].reshape(x.shape[0], x.shape[1], -1, 11, 11)
         cnn_concat = self.ConvNet(ra) # batch_size * vector_length * timesteps    
         meta = meta.transpose(1, 2)
         feature_all = torch.cat((cnn_concat, meta), dim = 1) # batch_size * vector_length * timesteps    
@@ -229,14 +237,15 @@ class TCN_GRU(torch.nn.Module):
         tcn_output = tcn_output.transpose(1,2)
 
 
-        _, h = self.gru(tcn_output, h0) # x_ra:(batch_size, seq_length, input_size)
+        _, h = self.gru(tcn_output, self.h0) # x_ra:(batch_size, seq_length, input_size)
         x = self.fc(h[-1])   # get the output of the last hidden state
         return x
     
 
     def init_hidden(self, batch_size):
-        hidden = torch.zeros([self.n_layers, batch_size, self.hidden_size]).to(self.device)
-        return hidden
+        # hidden = torch.zeros([self.n_layers, batch_size, self.hidden_size]).to(self.device)
+        # return hidden
+        self.h0 = torch.zeros([self.n_layers, batch_size, self.hidden_size]).to(self.device)
 
 class Lstm(torch.nn.Module):
     """
@@ -461,8 +470,8 @@ class GRU_CNN(torch.nn.Module):
         self.use_ra = use_ra
 
         # CNN setting
-        self.feature_map_sizes = [28, 14, 7]
-        self.filter_sizes = [3, 3]
+        self.feature_map_sizes = [8, 16]
+        self.filter_sizes = [2, 2]
         self.ConvNet = ConvNet(self.feature_map_sizes, self.filter_sizes, activation=torch.nn.ReLU())  
         self.device = device
 

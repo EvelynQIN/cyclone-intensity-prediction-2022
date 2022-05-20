@@ -168,6 +168,31 @@ class CycloneDataset(torch.utils.data.Dataset):
     def __len__(self):
         return self.meta_feature.size(0)
 
+class CycloneDatasetSHAP(torch.utils.data.Dataset):
+    """ Flatten the ra features and concat with meta features for shap explainer
+    """
+
+    def __init__(self, meta_feature, ra_feature, label, device):
+        super().__init__()
+        
+        #flatten ra features
+        ra_feature = ra_feature.reshape(ra_feature.shape[0], ra_feature.shape[1], -1)
+        feature_all = np.concatenate((meta_feature, ra_feature), axis = 2)
+        self.feature = torch.from_numpy(feature_all).float() # expected_dim sample_size * time_steps * 862
+
+        self.label = torch.from_numpy(label).float()  
+      
+        self.device = device
+
+
+    def __getitem__(self, index):
+
+        feature, label = self.feature[index], self.label[index]
+        return feature.to(self.device), label.to(self.device)
+
+    def __len__(self):
+        return self.label.size(0)
+
 
 
 

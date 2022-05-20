@@ -9,28 +9,28 @@ import os
 if __name__ == '__main__':
 
     to_trainpath = os.path.join('datasets', "train_N_extra")
-    to_testpath = os.path.join('datasets', "test")
+    to_testpath = os.path.join('datasets', "test_N_extra")
 
     if not os.path.exists(to_trainpath):
         os.makedirs(to_trainpath)
     if not os.path.exists(to_testpath):
         os.makedirs(to_testpath)
 
-    # extract trainset & val set
-    extract_timeseries(
-                        raw_path = "predictors",
-                        ra_feature_names = ['U300', 'V300', 'U500', 'V500', 'T850', 'MSL', 'PV320'],
-                        meta_feature_names = ['pmin', 'x', 'y', 'z', 'month'],
-                        start_stride = 3,
-                        split = True,
-                        split_ratio = 0.88,
-                        year_range = [2000, 2009], # train_data
-                        months_list = ['01','02','03','04','05','06','07','08','09','10','11','12'],
-                        train_path = to_trainpath, 
-                        test_path = None,
-                        tropical = 'extra',
-                        hemi = 'N'
-                              )
+    # # extract trainset & val set
+    # extract_timeseries(
+    #                     raw_path = "predictors",
+    #                     ra_feature_names = ['U300', 'V300', 'U500', 'V500', 'T850', 'MSL', 'PV320'],
+    #                     meta_feature_names = ['pmin', 'x', 'y', 'z', 'month'],
+    #                     start_stride = 3,
+    #                     split = True,
+    #                     split_ratio = 0.88,
+    #                     year_range = [2000, 2009], # train_data
+    #                     months_list = ['01','02','03','04','05','06','07','08','09','10','11','12'],
+    #                     train_path = to_trainpath, 
+    #                     test_path = None,
+    #                     tropical = 'extra',
+    #                     hemi = 'N'
+    #                           )
     print("***********Data extraction complete*************")
 
     # extract testset (standardize based on trainset)

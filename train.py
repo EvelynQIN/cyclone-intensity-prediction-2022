@@ -20,8 +20,8 @@ def train_step(model, train_loader, optimizer, loss_fn, lr_scheduler = None, ini
         optimizer.zero_grad()   # zero the parameter gradients
 
         if init_h == True:
-            h = model.init_hidden(features[1].shape[0])
-            output = model(features, h)
+            model.init_hidden(features.shape[0])
+            output = model(features)
         else:
             output = model(features)  # forward pass
 
@@ -39,22 +39,30 @@ def evaluate(model, val_loader, loss_fn, init_h = None):
     model.eval()
 
     total_loss = 0
+    total_loss_ts = [0] * 6
     
     with torch.no_grad():
         for features, label in val_loader:
             # features, label = (features[0].to(device), features[1].to(device)), label.to(device) # put the data on the selected execution device
             if init_h == True:
-                h = model.init_hidden(features[1].shape[0])
-                output = model(features, h)
+                model.init_hidden(features.shape[0])
+                output = model(features)
             else:
                 output = model(features)   # forward pass
             loss = loss_fn(output, label)    # compute loss
 
             total_loss += loss.item()
+
+            losses_ts = []
+            for t in range(label.shape[1]):
+                losst = loss_fn(output[:, t], label[:, t]).item()
+                losses_ts.append(losst)
+            total_loss_ts = np.add(total_loss_ts, losses_ts)
         
     total_loss /= len(val_loader)
+    total_loss_ts /= len(val_loader)
 
-    return total_loss
+    return total_loss, total_loss_ts
 
 def train(n_epochs, model, train_loader,val_loader, optimizer, loss_fn, model_name, lr_scheduler = None, init_h = None):
     """
@@ -78,7 +86,7 @@ def train(n_epochs, model, train_loader,val_loader, optimizer, loss_fn, model_na
         train_loss = train_step(model, train_loader, optimizer, loss_fn, lr_scheduler, init_h)
         loss_dict['train'].append(train_loss)
         # evaluate 
-        val_loss = evaluate(model, val_loader, loss_fn, init_h)
+        val_loss, _ = evaluate(model, val_loader, loss_fn, init_h)
         loss_dict['val'].append(val_loss)
 
         print(f"[Epoch {epoch}] - Training : loss = {train_loss}", end=" ")
@@ -94,6 +102,9 @@ def train(n_epochs, model, train_loader,val_loader, optimizer, loss_fn, model_na
                 'epoch': n_epochs,
                 'model_state_dict': model.state_dict(),
                 'optimizer_state_dict': optimizer.state_dict(),
+                'train_loss': train_loss,
+                'val_loss': val_loss,
+                'args': model.args
                 }, save_model_path)
 
 
@@ -114,8 +125,8 @@ def evaluate_denorm(model, val_loader, loss_fn, scaler_dict, init_h = None):
         for features, label in val_loader:
             # features, label = (features[0].to(device), features[1].to(device)), label.to(device) # put the data on the selected execution device
             if init_h == True:
-                h = model.init_hidden(features[1].shape[0])
-                output = model(features, h)
+                model.init_hidden(features.shape[0])
+                output = model(features)
             else:
                 output = model(features)   # forward pass
 
