@@ -11,21 +11,21 @@ from utils import moving_average, MSELoss_denorm
 from train import train, evaluate_denorm, evaluate
 
 BATCH_SIZE = 64
-n_epochs = 10
+n_epochs = 100
 input_channels = 79  # calculate based on the CNN setting
 output_size = 6
 # Note: We use a very simple setting here (assuming all levels have the same # of channels.
-channel_sizes = [32] * 3 # [num of hidden units per layer] * num of levels
+channel_sizes = [64] * 3 # [num of hidden units per layer] * num of levels
 kernel_size = 3
 dropout = 0.2
-hidden_size = 16
+hidden_size = 128
 num_layers = 8
-learning_rate = 1e-4 / 5
+learning_rate = 1e-5
 
 
 if __name__ == '__main__':
-    train_path = 'datasets/train_N_extra'
-    test_path = 'datasets/test_N_extra'
+    train_path = 'datasets/train_N_extra_normal'
+    test_path = 'datasets/test_N_extra_extreme'
     if not os.path.exists(train_path):
         os.makedirs(train_path)
     if not os.path.exists(test_path):
@@ -58,11 +58,13 @@ if __name__ == '__main__':
 
     model = TCN_GRU(input_channels, output_size, channel_sizes, kernel_size, dropout, hidden_size, num_layers, device).to(device)
     print(model)
-    optimizer = torch.optim.Adam(model.parameters(), lr = learning_rate)
-    lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, n_epochs)
+    optimizer = torch.optim.Adam(model.parameters(), lr = learning_rate)  
+    
+    # decay the learning rate when reaching milestones
+    lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[50], gamma=0.1)
     loss_fn = nn.MSELoss()
 
-    train(n_epochs, model, train_loader, val_loader, optimizer, loss_fn, 'GRU_TCN', lr_scheduler, init_h = True)
+    train(n_epochs, model, train_loader, val_loader, optimizer, loss_fn, 'GRU_TCN_extreme_test', lr_scheduler, init_h = True)
 
   
     denorm_model_loss, denorm_model_loss_ts = evaluate_denorm(model, test_loader, loss_fn, scaler_dict, init_h = True)
@@ -72,13 +74,13 @@ if __name__ == '__main__':
     print(f"By each timestep: \n GRU_TCN normed MSE: {model_loss_ts} \n GRU_TCN denormed MSE: {denorm_model_loss_ts}")
 
     #calculate the baseline MSE (normalized)
-    test_moving_avg = moving_average(test_meta)
-    norm_MSE = MSELoss_denorm(output = test_moving_avg, label = test_labels, scaler_dict = scaler_dict, denorm = False, time_sep = True)
+    # test_moving_avg = moving_average(test_meta)
+    # norm_MSE = MSELoss_denorm(output = test_moving_avg, label = test_labels, scaler_dict = scaler_dict, denorm = False, time_sep = True)
 
-    denormed_MSE = MSELoss_denorm(output = test_moving_avg, label = test_labels, scaler_dict = scaler_dict, denorm = True, time_sep = True)
+    # denormed_MSE = MSELoss_denorm(output = test_moving_avg, label = test_labels, scaler_dict = scaler_dict, denorm = True, time_sep = True)
 
-    print("Over all timestep: \nBaseline normed MSE: {} \nBaseline denormed MSE: {}"
-        .format(MSELoss_denorm(output = test_moving_avg, label = test_labels, scaler_dict = scaler_dict, denorm = False, time_sep = False), 
-                MSELoss_denorm(output = test_moving_avg, label = test_labels, scaler_dict = scaler_dict, denorm = True, time_sep = False)))
+    # print("Over all timestep: \nBaseline normed MSE: {} \nBaseline denormed MSE: {}"
+    #     .format(MSELoss_denorm(output = test_moving_avg, label = test_labels, scaler_dict = scaler_dict, denorm = False, time_sep = False), 
+    #             MSELoss_denorm(output = test_moving_avg, label = test_labels, scaler_dict = scaler_dict, denorm = True, time_sep = False)))
 
-    print("By each timestep: \nBaseline normed MSE: {} \nBaseline denormed MSE: {}".format(norm_MSE, denormed_MSE))
+    # print("By each timestep: \nBaseline normed MSE: {} \nBaseline denormed MSE: {}".format(norm_MSE, denormed_MSE))

@@ -20,7 +20,7 @@ def train_step(model, train_loader, optimizer, loss_fn, lr_scheduler = None, ini
         optimizer.zero_grad()   # zero the parameter gradients
 
         if init_h == True:
-            model.init_hidden(features.shape[0])
+            model.init_hidden(features[0].shape[0])
             output = model(features)
         else:
             output = model(features)  # forward pass
@@ -45,7 +45,7 @@ def evaluate(model, val_loader, loss_fn, init_h = None):
         for features, label in val_loader:
             # features, label = (features[0].to(device), features[1].to(device)), label.to(device) # put the data on the selected execution device
             if init_h == True:
-                model.init_hidden(features.shape[0])
+                model.init_hidden(features[0].shape[0])
                 output = model(features)
             else:
                 output = model(features)   # forward pass
@@ -125,7 +125,7 @@ def evaluate_denorm(model, val_loader, loss_fn, scaler_dict, init_h = None):
         for features, label in val_loader:
             # features, label = (features[0].to(device), features[1].to(device)), label.to(device) # put the data on the selected execution device
             if init_h == True:
-                model.init_hidden(features.shape[0])
+                model.init_hidden(features[0].shape[0])
                 output = model(features)
             else:
                 output = model(features)   # forward pass

@@ -25,7 +25,7 @@ class RawData:
     """
     This class load the raw nc files and merge them into one data structure
     """
-    def __init__(self, folder_path, year_range, months_list):    
+    def __init__(self, folder_path, year_range, months_list, tropical, hemi):    
         """
         Args
           year_range: the range of year to extract, example input: [2000, 2009] 
@@ -34,10 +34,11 @@ class RawData:
         self.folder_path = folder_path
         self.year_range = year_range
         self.months_list = months_list
-
-        self.merge_data(self.folder_path)
+        self.tropical = tropical
+        self.hemi = hemi
+        self.merge_data()
     
-    def merge_data(self, folder_path):
+    def merge_data(self):
         """merge nc files into one dictionary
         Args:
             folder_path: path to predictors folder       
@@ -64,7 +65,7 @@ class RawData:
         # iteratively read all the data records from year_range[0] (inclusive) to year_range[1] (exclusive)
         for y in range(self.year_range[0], self.year_range[1]):
             for m in self.months_list:
-                m_data = nc.Dataset(folder_path + "/pr_" + str(y) + m + ".nc")
+                m_data = nc.Dataset(self.folder_path + "/pr_" + str(y) + m + ".nc")
                 for k in columns:
                     self._dataset[k] = np.append(self._dataset[k], m_data.variables[k][:].data, axis = 0) if len(self._dataset[k]) > 0 else m_data.variables[k][:].data
                 self._dataset['year'] = np.append(self._dataset['year'], [y] * len(m_data.dimensions['ind']))
@@ -85,6 +86,29 @@ class RawData:
         for col in self._dataset.keys():
             self._dataset[col] = np.delete(self._dataset[col], rid_list, 0)
 
+        # calculate the 90% quantile
+        if self.tropical == 'tropical' and self.hemi == 'N':
+            index = np.where((self._dataset['lat'] >= 0) & (self._dataset['lat'] <= 23.5))[0]
+        elif self.tropical == 'extra' and self.hemi == 'N':
+            index = np.where(self._dataset['lat'] > 20)[0]
+        elif self.tropical == 'tropical' and self.hemi == 'S':
+            index = np.where((self._dataset['lat'] < 0) & (self._dataset['lat'] > -23.5))[0]
+        elif self.tropical == 'extra' and self.hemi == 'S':
+            index = np.where(self._dataset['lat'] < -20)[0]
+        elif self.tropical == 'tropical' and self.hemi == 'mix':
+            index = np.where((self._dataset['lat'] >= -20) & (self._dataset['lat'] <= 20))[0]
+        elif self.tropical == 'extra' and self.hemi == 'mix':
+            index = np.where((self._dataset['lat'] > 20) | (self._dataset['lat'] < -20))[0]
+        elif self.tropical == 'mix' and self.hemi == 'N':
+            index = np.where(self._dataset['lat'] >= 0)[0]
+        elif self.tropical == 'mix' and self.hemi == 'S':
+            index = np.where(self._dataset['lat'] < 0)[0]
+        else:  
+            index = np.array([])
+
+        self._dataset['tr_hm'] = index
+
+        self._dataset['pmin_thres'] = np.quantile(self._dataset['pmin'][index], 0.9)
 
         # Make the id of the first cyclone track start with 0 (currently it starts with some higher number)
         start_id = self._dataset['id'][0]
@@ -106,7 +130,7 @@ class RawData:
         # Store all the TrackView objects in a list
         self._track_list = TrackViewList(track_list)
     
-    def clp_std(self, train_path, test_path = None, tropical = 'mix', hemi = 'mix'):
+    def clp_std(self, train_path, test_path = None):
         """Calculate the mean and std for each feature for standard scaler, and perform clamp & standard scaler
         Args:
             tropical: ['tropical', 'extra', 'mix'], default = 'mix'
@@ -115,25 +139,6 @@ class RawData:
             a dict contains the mean & std of each feature
         """
         features = ['U500', 'V500', 'U300', 'V300', 'T850', 'MSL', 'PV320', 'pmin', 'x', 'y', 'z']
-
-        if tropical == 'tropical' and hemi == 'N':
-            index = np.where((self._dataset['lat'] >= 0) & (self._dataset['lat'] <= 23.5))[0]
-        elif tropical == 'extra' and hemi == 'N':
-            index = np.where(self._dataset['lat'] > 20)[0]
-        elif tropical == 'tropical' and hemi == 'S':
-            index = np.where((self._dataset['lat'] < 0) & (self._dataset['lat'] > -23.5))[0]
-        elif tropical == 'extra' and hemi == 'S':
-            index = np.where(self._dataset['lat'] < -20)[0]
-        elif tropical == 'tropical' and hemi == 'mix':
-            index = np.where((self._dataset['lat'] >= -20) & (self._dataset['lat'] <= 20))[0]
-        elif tropical == 'extra' and hemi == 'mix':
-            index = np.where((self._dataset['lat'] > 20) | (self._dataset['lat'] < -20))[0]
-        elif tropical == 'mix' and hemi == 'N':
-            index = np.where(self._dataset['lat'] >= 0)[0]
-        elif tropical == 'mix' and hemi == 'S':
-            index = np.where(self._dataset['lat'] < 0)[0]
-        else:  
-            index = np.array([])
 
         ra_clamp_values = {
             # Each feature stores a min, max and indices tuple
@@ -145,7 +150,7 @@ class RawData:
             'MSL': [8e4, 1.2e5, 5],
             'PV320': [-30, 30.0, 6]
         }
-
+        
         # for feature in features: 
             
         #     col = self._dataset[feature]
@@ -172,8 +177,8 @@ class RawData:
             for feature in features: 
                 if feature in ['U300', 'V300', 'U500','V500','T850','MSL','PV320']:
                     self._dataset[feature] = np.clip(self._dataset[feature], a_min=ra_clamp_values[feature][0], a_max=ra_clamp_values[feature][1])
-                mean = np.mean(self._dataset[feature].flatten()) if index.size == 0 else np.mean(self._dataset[feature][index].flatten())
-                std =  np.std(self._dataset[feature].flatten()) if index.size == 0 else np.std(self._dataset[feature][index].flatten())               
+                mean = np.mean(self._dataset[feature].flatten()) if self._dataset['tr_hm'].size == 0 else np.mean(self._dataset[feature][self._dataset['tr_hm']].flatten())
+                std =  np.std(self._dataset[feature].flatten()) if self._dataset['tr_hm'].size == 0 else np.std(self._dataset[feature][self._dataset['tr_hm']].flatten())               
                 scaler_dict[feature] = [mean, std]
                 self._dataset[feature] = (self._dataset[feature] - mean) / std                
                 print("=======Rawdata. calulate the mean&std of feature: {} with mean {}  || std {}=======".format(feature, mean, std))
@@ -291,6 +296,7 @@ class TrackView:
     def __init__(self, raw_data, indices):
         self._raw_data = raw_data
         self._indices = list(indices)  # indices are all index related to one cyclone
+        self._extreme_flag = self.extreme_cyclones()
 
     def drop_steps(self, indices):
         """
@@ -313,6 +319,14 @@ class TrackView:
         A short-cut to remove the very last time-step of the stored time-steps.
         """
         self.drop_steps(-1)
+    
+    def extreme_cyclones(self):
+        """
+        return a extreme flag of each cyclone: true then pmin > 90% quantile, false other_wise
+        """
+        extreme_steps = np.sum(self._raw_data['pmin'][self._indices] > self._raw_data['pmin_thres'])
+        return True if extreme_steps > 0 else False
+
 
     def extract_sub_track(self, start, length, stride):
         """

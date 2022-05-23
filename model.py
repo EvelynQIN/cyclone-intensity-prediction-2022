@@ -193,7 +193,7 @@ class TCN_LSTM(torch.nn.Module):
         hidden = (torch.zeros([self.n_layers, batch_size, self.lstm_hidden_size]).to(self.device), torch.zeros([self.n_layers, batch_size, self.lstm_hidden_size]).to(self.device))
         return hidden
 
-class TCN_GRU(torch.nn.Module):
+class TCN_GRU_SHAP(torch.nn.Module):
     """
     para
     - input_size: feature size
@@ -230,6 +230,60 @@ class TCN_GRU(torch.nn.Module):
 
     def forward(self, x):
         meta, ra = x[:, :, :15], x[:, :, 15:].reshape(x.shape[0], x.shape[1], -1, 11, 11)
+        cnn_concat = self.ConvNet(ra) # batch_size * vector_length * timesteps    
+        meta = meta.transpose(1, 2)
+        feature_all = torch.cat((cnn_concat, meta), dim = 1) # batch_size * vector_length * timesteps    
+        tcn_output = self.tcn(feature_all)
+        tcn_output = tcn_output.transpose(1,2)
+
+
+        _, h = self.gru(tcn_output, self.h0) # x_ra:(batch_size, seq_length, input_size)
+        x = self.fc(h[-1])   # get the output of the last hidden state
+        return x
+    
+
+    def init_hidden(self, batch_size):
+        # hidden = torch.zeros([self.n_layers, batch_size, self.hidden_size]).to(self.device)
+        # return hidden
+        self.h0 = torch.zeros([self.n_layers, batch_size, self.hidden_size]).to(self.device)
+
+class TCN_GRU(torch.nn.Module):
+    """
+    para
+    - input_size: feature size
+    - hidden_size: number of hidden units
+    - output_size: number of output --> 6 predicted timesteps
+    - num_layers: layers of GRU to stack
+    """
+    def __init__(self, input_size, output_size, num_channels, kernel_size, dropout, hidden_size, n_layers, device):
+        super().__init__()
+        self.tcn = TemporalConvNet(input_size, num_channels, kernel_size=kernel_size, dropout=dropout)
+        self.output_size = output_size
+        self.n_layers = n_layers
+        self.hidden_size = hidden_size
+        self.gru = torch.nn.GRU(num_channels[-1], hidden_size, n_layers, batch_first=True).float()
+        self.fc = torch.nn.Linear(hidden_size, output_size)
+        self.init_weights()
+        self.args = {'input_size': input_size, 
+                     'output_size': output_size,
+                     'num_channels': num_channels,
+                     'kernel_size': kernel_size,
+                     'dropout': dropout,
+                     'hidden_size': hidden_size,
+                     'n_layers': n_layers,
+                     'device': device} # save the args for reconstructing the checkppints
+
+        # CNN setting
+        self.feature_map_sizes = [8, 16]
+        self.filter_sizes = [2, 2]
+        self.ConvNet = ConvNet(self.feature_map_sizes, self.filter_sizes, activation=torch.nn.ReLU())  
+        self.device = device
+    
+    def init_weights(self):
+        self.fc.weight.data.normal_(0, 0.01)
+
+    def forward(self, x):
+        meta, ra = x
         cnn_concat = self.ConvNet(ra) # batch_size * vector_length * timesteps    
         meta = meta.transpose(1, 2)
         feature_all = torch.cat((cnn_concat, meta), dim = 1) # batch_size * vector_length * timesteps    
@@ -475,7 +529,15 @@ class GRU_CNN(torch.nn.Module):
         self.ConvNet = ConvNet(self.feature_map_sizes, self.filter_sizes, activation=torch.nn.ReLU())  
         self.device = device
 
-    def forward(self, x, h0):
+        self.args = {'input_size_ra': input_size_ra, 
+                     'input_size_meta': input_size_meta,
+                     'hidden_size': hidden_size,
+                     'output_size': output_size,
+                     'num_layers': num_layers,
+                     'device': device,
+                     'use_ra': use_ra} # save the args for reconstructing the checkppints
+
+    def forward(self, x):
         # print(h0[0].shape)
         # print(h0[1].shape)
         (x_meta, x_ra) = x
@@ -491,11 +553,11 @@ class GRU_CNN(torch.nn.Module):
             new = x_meta
             model = self.lstm_meta
 
-        _, h = model(new, h0) # x_ra:(batch_size, seq_length, input_size)
+        _, h = model(new, self.h0) # x_ra:(batch_size, seq_length, input_size)
         x = self.fc(h[-1])   # get the output of the last hidden state
         return x
     
 
     def init_hidden(self, batch_size):
-        hidden = torch.zeros([self.n_layers, batch_size, self.hidden_size]).to(self.device)
-        return hidden
+        self.h0 = torch.zeros([self.n_layers, batch_size, self.hidden_size]).to(self.device)
+        
