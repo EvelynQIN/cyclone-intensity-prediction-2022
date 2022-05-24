@@ -282,7 +282,9 @@ class TCN_GRU(torch.nn.Module):
         self.device = device
     
     def init_weights(self):
-        self.fc.weight.data.normal_(0, 0.01)
+        self.fc1.weight.data.normal_(0, 0.01)
+        self.fc2.weight.data.normal_(0, 0.01)
+
 
     def forward(self, x):
         meta, ra = x
