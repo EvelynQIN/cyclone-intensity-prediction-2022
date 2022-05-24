@@ -67,7 +67,7 @@ def extract_timeseries(
     # moving_avg = []
 
     # Iterate over each cyclone
-    for track in enumerate(cyclone_tracks):
+    for track in cyclone_tracks:
 
         # We only want to look at cyclones which live at least 14 hours. (7 h -> pred next 7 h)
         if len(track) < 12:

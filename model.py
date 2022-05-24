@@ -262,7 +262,9 @@ class TCN_GRU(torch.nn.Module):
         self.n_layers = n_layers
         self.hidden_size = hidden_size
         self.gru = torch.nn.GRU(num_channels[-1], hidden_size, n_layers, batch_first=True).float()
-        self.fc = torch.nn.Linear(hidden_size, output_size)
+        self.fc1 = torch.nn.Linear(hidden_size, 32)
+        self.fc2 = torch.nn.Linear(32, output_size)
+        self.activation = torch.nn.LeakyReLU(0.1)
         self.init_weights()
         self.args = {'input_size': input_size, 
                      'output_size': output_size,
@@ -292,7 +294,9 @@ class TCN_GRU(torch.nn.Module):
 
 
         _, h = self.gru(tcn_output, self.h0) # x_ra:(batch_size, seq_length, input_size)
-        x = self.fc(h[-1])   # get the output of the last hidden state
+        x = self.fc1(h[-1])   # get the output of the last hidden state
+        x = self.activation(x)
+        x = self.fc2(x)
         return x
     
 
