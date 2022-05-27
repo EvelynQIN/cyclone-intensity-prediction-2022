@@ -8,8 +8,8 @@ import os
 
 if __name__ == '__main__':
 
-    to_trainpath = os.path.join('datasets', "train_N_tropical")
-    to_testpath = os.path.join('datasets', "test_N_tropical")
+    to_trainpath = os.path.join('datasets', "train_N_extra")
+    to_testpath = os.path.join('datasets', "test_N_extra")
 
     if not os.path.exists(to_trainpath):
         os.makedirs(to_trainpath)
@@ -21,14 +21,14 @@ if __name__ == '__main__':
                         raw_path = "predictors",
                         ra_feature_names = ['U300', 'V300', 'U500', 'V500', 'T850', 'MSL', 'PV320'],
                         meta_feature_names = ['pmin', 'x', 'y', 'z', 'month'],
-                        start_stride = 1,
+                        start_stride = 3,
                         split = True,
                         split_ratio = 0.88,
                         year_range = [2000, 2009], # train_data
                         months_list = ['01','02','03','04','05','06','07','08','09','10','11','12'],
                         train_path = to_trainpath, 
                         test_path = None,
-                        tropical = 'tropical',
+                        tropical = 'extra',
                         hemi = 'N'
                               )
     print("***********Data extraction complete*************")
@@ -45,7 +45,7 @@ if __name__ == '__main__':
                         months_list = ['01','02','03','04','05','06','07','08','09','10','11','12'],
                         train_path = to_trainpath, 
                         test_path = to_testpath,
-                        tropical = 'tropical',
+                        tropical = 'extra',
                         hemi = 'N'
                     )
     print("***********Test Data extraction complete*************")

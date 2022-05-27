@@ -26,6 +26,9 @@ class ConvolutionPoolLayer(torch.nn.Module):
         self.filter_size = filter_size
         # Convolution operation - we do the padding manually in order to get tensorflow 'same' padding
         self.conv = torch.nn.Conv2d(in_channels, out_channels, self.filter_size, stride=self.stride, padding=0, bias=bias)
+        
+        # self.conv_bn = torch.nn.BatchNorm2d(out_channels) #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!check 5.24 7:50pm
+
         # Use pooling to down-sample the image resolution?
         # This is 2x2 max-pooling, which means that we consider 2x2 windows and select the largest value
         # in each window. Then we move 2 pixels to the next window.
@@ -68,6 +71,7 @@ class ConvolutionPoolLayer(torch.nn.Module):
         padding = self.get_padding_amount(x.shape)
         x = torch.nn.functional.pad(x, padding)  # [left, right, top, bot]
         x = self.conv(x)
+        #x = self.conv_bn(x)
         if self.max_pool:
             x = self.max_pool(x)
         if self.activation:
@@ -262,9 +266,7 @@ class TCN_GRU(torch.nn.Module):
         self.n_layers = n_layers
         self.hidden_size = hidden_size
         self.gru = torch.nn.GRU(num_channels[-1], hidden_size, n_layers, batch_first=True).float()
-        self.fc1 = torch.nn.Linear(hidden_size, 32)
-        self.fc2 = torch.nn.Linear(32, output_size)
-        self.activation = torch.nn.LeakyReLU(0.1)
+        self.fc = torch.nn.Linear(hidden_size, output_size)
         self.init_weights()
         self.args = {'input_size': input_size, 
                      'output_size': output_size,
@@ -282,8 +284,7 @@ class TCN_GRU(torch.nn.Module):
         self.device = device
     
     def init_weights(self):
-        self.fc1.weight.data.normal_(0, 0.01)
-        self.fc2.weight.data.normal_(0, 0.01)
+        self.fc.weight.data.normal_(0, 0.01)
 
 
     def forward(self, x):
@@ -296,9 +297,7 @@ class TCN_GRU(torch.nn.Module):
 
 
         _, h = self.gru(tcn_output, self.h0) # x_ra:(batch_size, seq_length, input_size)
-        x = self.fc1(h[-1])   # get the output of the last hidden state
-        x = self.activation(x)
-        x = self.fc2(x)
+        x = self.fc(h[-1])   # get the output of the last hidden state
         return x
     
 
@@ -306,6 +305,7 @@ class TCN_GRU(torch.nn.Module):
         # hidden = torch.zeros([self.n_layers, batch_size, self.hidden_size]).to(self.device)
         # return hidden
         self.h0 = torch.zeros([self.n_layers, batch_size, self.hidden_size]).to(self.device)
+
 
 class Lstm(torch.nn.Module):
     """

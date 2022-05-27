@@ -24,8 +24,8 @@ learning_rate = 1e-5
 
 
 if __name__ == '__main__':
-    train_path = 'datasets/train_N_tropical'
-    test_path = 'datasets/test_N_tropical'
+    train_path = 'datasets/train_N_extra'
+    test_path = 'datasets/test_N_extra'
     if not os.path.exists(train_path):
         os.makedirs(train_path)
     if not os.path.exists(test_path):
@@ -64,7 +64,7 @@ if __name__ == '__main__':
     lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[50], gamma=0.1)
     loss_fn = nn.MSELoss()
 
-    train(n_epochs, model, train_loader, val_loader, optimizer, loss_fn, 'GRU_TCN_N_tropical', lr_scheduler, init_h = True)
+    train(n_epochs, model, train_loader, val_loader, optimizer, loss_fn, 'GRU_TCN_N_extra_2fc_bn2d', lr_scheduler, init_h = True)
 
   
     denorm_model_loss, denorm_model_loss_ts = evaluate_denorm(model, test_loader, loss_fn, scaler_dict, init_h = True)
