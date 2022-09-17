@@ -64,10 +64,6 @@ def extract_timeseries(
     ra_features = []
     meta_features = []
     labels = []
-    # ra_features = np.array([])
-    # meta_features = np.array([])
-    # labels = np.array([])
-    # moving_avg = []
 
     # Iterate over each cyclone
     for (track_id , track) in enumerate(cyclone_tracks):
@@ -116,7 +112,6 @@ def extract_timeseries(
             sub_ra_features = []
             sub_meta_features = []
             sub_labels = []
-            # sub_mov_avg = []
 
             # Iterate over the first 7 time steps and extract the data
             for index, step in enumerate(sub_track[:6]):
@@ -130,27 +125,15 @@ def extract_timeseries(
                 # Fetch the intensity "pmin" of the time step 6 steps in the future
                 label = sub_track[index + 6].get_meta_features(["pmin"])[0]
                 sub_labels.append(label)
-                # sub_labels = np.array([label]) if sub_labels.shape[0] == 0 else np.append(sub_labels, [label], axis = 0)
-
-                # # compute the moving average as the baseline
-                # curr_pmins = [t.get_meta_features(["pmin"]) for t in sub_track[index: 6]]
-                # curr_pmins = np.append(curr_pmins, sub_mov_avg)
-                # pmin_avg = np.mean(curr_pmins)
-                # sub_mov_avg.append(pmin_avg)
 
 
             ra_features.append(sub_ra_features) 
             meta_features.append(sub_meta_features)
             labels.append(sub_labels)
-            # moving_avg.append([sub_mov_avg])
 
     print("===========extract_timeseries: {} cyclone tracks with {} sub-tracks extraction complete!============".format(track_id, num_subtracks))    
 
     # Combine the feature lists
-    # ra_features = np.vstack(ra_features)
-    # meta_features = np.vstack(meta_features)
-    # labels = np.vstack(labels)
-    # moving_avg = np.vstack(moving_avg)
     ra_features = np.array(ra_features)
     meta_features = np.array(meta_features)
     labels = np.array(labels)
@@ -194,7 +177,6 @@ def extract_timeseries(
         pickle.dump(ra_features, open(to_path + "/ra_features.pkl", "wb"), protocol = 4)
         pickle.dump(meta_features, open(to_path + "/meta_features.pkl", "wb"), protocol = 4)
         pickle.dump(labels, open(to_path + "/labels.pkl", "wb"), protocol = 4)
-        # pickle.dump(moving_avg, open(to_path + "/moving_avg.pkl", "wb"))
         
         print("===========extract_timeseries.test data save complete!============") 
         
