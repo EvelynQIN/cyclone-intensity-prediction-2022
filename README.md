@@ -1,7 +1,7 @@
 # DS Lab 2022 P2 Cyclone
 
 ## Description
-This is the gitlab repository of the cyclone intensity prediction project (P9).
+This is the gitlab repository of the cyclone intensity prediction project (P2).
 
 ## Supervisors
 * Prof. Dr. Sebastian Schemm sebastian.schemm@env.ethz.ch
