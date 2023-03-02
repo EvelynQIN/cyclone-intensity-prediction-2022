@@ -12,6 +12,12 @@ importance interpretability using SHAP and model robustness test.
 We first pass the reanalysis features through a CNN, then combine the output with the meta features to be the input of the sequence modelling network.
 ![pipeline](https://github.com/EvelynQIN/cyclone-intensity-prediction-2022/blob/main/imgs/model_pipeline.png "pipeline")
 
+## Results
+![MSE](https://github.com/EvelynQIN/cyclone-intensity-prediction-2022/blob/main/imgs/model_comparison.png "MSE")
+
+## Visualization of One Cyclone Track Prediction
+![case](https://github.com/EvelynQIN/cyclone-intensity-prediction-2022/blob/main/imgs/vis.png "case")
+
 ## Supervisors
 * Prof. Dr. Sebastian Schemm sebastian.schemm@env.ethz.ch
 * Dr. Michael Armand Sprenger michael.sprenger@env.ethz.ch
