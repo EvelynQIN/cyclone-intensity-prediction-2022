@@ -8,6 +8,10 @@ for the next 6 timesteps with the past 6 timesteps. We conducted different seque
 techniques (LSTM, CNN, TCN, GRU, RNN) on the task, and then focused on feature
 importance interpretability using SHAP and model robustness test.
 
+## Model Pipeline
+We first pass the reanalysis features through a CNN, then combine the output with the meta features to be the input of the sequence modelling network.
+![pipeline](https://github.com/EvelynQIN/cyclone-intensity-prediction-2022/blob/main/imgs/model_pipeline.png "pipeline")
+
 ## Supervisors
 * Prof. Dr. Sebastian Schemm sebastian.schemm@env.ethz.ch
 * Dr. Michael Armand Sprenger michael.sprenger@env.ethz.ch
